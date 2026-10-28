@@ -260,6 +260,18 @@ body.driver .m-tabs [data-view="invoice"],body.driver .m-tabs [data-view="past"]
 body.m .m-tabs{grid-template-columns:repeat(5,1fr)}
 body.m #btnDrive{display:none}
 .combo{display:flex;gap:6px;align-items:stretch}
+.veh-pick>span{display:block;font-weight:700;color:var(--muted);font-size:15px;margin-bottom:4px}
+.veh-btns{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:6px}
+.veh-btns button{min-height:52px}
+.veh-btns button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.link.here{align-self:flex-start;font-size:15px;padding:4px 0;min-height:32px}
+.geo-note{margin:0;color:var(--muted);font-size:14px;min-height:1em}
+.geo-warn{display:flex;flex-direction:column;gap:6px;border:2px solid var(--warn);border-radius:12px;padding:12px;background:var(--bg)}
+.geo-warn b{color:var(--warn)}
+.geo-flag{display:inline-block;margin-top:2px;font-size:12px;font-weight:700;color:var(--warn)}
+.map-link{display:block;font-size:13px;font-weight:700;color:var(--accent);margin-top:2px}
+.sc-seen{font-size:15px}
+.sc-seen a{color:var(--accent);font-weight:700}
 .combo input{flex:1;min-width:0}
 .combo-btn{flex:none;min-height:48px;min-width:52px;padding:0 12px;font-size:20px;border-radius:6px}
 .place-sheet .m-sheet-card{max-width:560px;margin:0 auto}
@@ -979,7 +991,7 @@ function ltHighest(d) {
 const KEY = 'loris-taxi-v4';
 const CFG_KEY = 'loris-taxi-sync';
 const DEFAULTS = {
-  business: { name: "LORI'S TAXI", address: "162 Main Street\nAtwood, Ontario\nN0G 1B0", phone: "519-313-2333", hst: "799722962", rate: 13, start: 356 },
+  business: { name: "LORI'S TAXI", address: "162 Main Street\nAtwood, Ontario\nN0G 1B0", phone: "519-313-2333", hst: "799722962", rate: 13, start: 356, vehicles: ['Gray Murano', 'Red Murano', 'Blue Forester'] },
   customers: []
 };
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -1641,6 +1653,7 @@ function renderSettings() {
       <label for="sHst">HST number<input id="sHst" data-b="hst" value="${esc(b.hst)}"></label>
       <label for="sRate">HST rate (%)<input id="sRate" data-b="rate" inputmode="decimal" value="${esc(b.rate)}"></label>
       <label for="sStart">Lowest next invoice number<input id="sStart" data-b="start" inputmode="numeric" value="${esc(b.start)}"></label>
+      <label for="sVeh">Vehicles (one per line)<textarea id="sVeh" data-b="vehiclesText" rows="3">${esc((b.vehicles || []).join('\n'))}</textarea></label>
     </div>
     <label for="sAddr">Address<textarea id="sAddr" data-b="address">${esc(b.address)}</textarea></label>
     <h2>Customers</h2>
@@ -1680,7 +1693,8 @@ function renderSettings() {
 }
 $('settingsPanel').addEventListener('input', e => {
   const t = e.target;
-  if (t.dataset.b) data.business[t.dataset.b] = t.value;
+  if (t.dataset.b === 'vehiclesText') data.business.vehicles = t.value.split('\n').map(x => x.trim()).filter(Boolean);
+  else if (t.dataset.b) data.business[t.dataset.b] = t.value;
   if (t.dataset.c) { const c = data.customers[+t.closest('[data-ci]').dataset.ci]; c[t.dataset.c] = t.type === 'checkbox' ? t.checked : t.value; if (t.dataset.c === 'cols') { save(); renderSettings(); return; } }
   if (t.dataset.cl) { const c = data.customers[+t.closest('[data-ci]').dataset.ci]; c.clients[+t.closest('[data-cj]').dataset.cj][t.dataset.cl] = t.value; }
   save();
@@ -2070,9 +2084,10 @@ function tripRows(trips, editable) {
   return `<div class="trip-rows">${trips.map(t => `
     <div class="trip-row">
       <div class="tr-time">${hm(t.pickupAt)}<small>${t.dropoffAt ? dur(t.pickupAt, t.dropoffAt) : 'riding'}</small></div>
-      <div class="tr-what">${tripLine(t)}</div>
+      <div class="tr-what">${tripLine(t)}${t.geoWarn ? `<span class="geo-flag" title="${esc(t.geoWarn)}">Location didn't match</span>` : ''}</div>
       <div class="tr-amt">${money(cents(t.amount))}<span class="pay-chip pay-${esc(t.pay || 'none')}">${PAY[t.pay] || '—'}</span>
-        ${t.invoiceUid ? '<small>invoiced</small>' : t.paidAt ? '<small>tab paid</small>' : ''}</div>
+        ${t.invoiceUid ? '<small>invoiced</small>' : t.paidAt ? '<small>tab paid</small>' : ''}
+        ${mapLink(t) ? `<a class="map-link" href="${mapLink(t)}" target="_blank" rel="noopener">Map</a>` : ''}</div>
       ${editable ? `<button type="button" class="small" data-dedit="${esc(t.id)}">Edit</button>` : ''}
     </div>`).join('')}</div>`;
 }
@@ -2081,7 +2096,8 @@ const stepper = (f, v, label) => `<div class="stepper"><span>${label}</span>
   <button type="button" data-step="${f}" data-delta="1" aria-label="More ${label.toLowerCase()}">+</button></div>`;
 function placeInput(f, label, v) {
   return `<label for="dt_${f}" class="wide">${label}<span class="combo"><input id="dt_${f}" data-dt="${f}" value="${esc(v || '')}" autocomplete="off">
-    <button type="button" class="combo-btn" data-dplace="${f}" aria-label="Choose a saved place">▾</button></span></label>`;
+    <button type="button" class="combo-btn" data-dplace="${f}" aria-label="Choose a saved place">▾</button></span>
+    <button type="button" class="link here" data-dhere="${f}">Use where I am</button></label>`;
 }
 /* The trip form: used while riding, for a forgotten trip, and for editing. */
 function tripFormHtml(t, mode) {
@@ -2101,6 +2117,7 @@ function tripFormHtml(t, mode) {
       ${placeInput('pickup', 'Picked up at', t.pickup)}
       ${placeInput('dropoff', 'Dropped off at', t.dropoff)}
     </div>
+    <p class="geo-note" id="geoNote">${t.pickupGeo ? `Pick-up spot saved (within ${t.pickupGeo.acc} m).` : t.noGeo ? 'Location is off, so this trip has no map spot.' : riding ? 'Saving the pick-up spot…' : ''}</p>
     <div class="steppers">${stepper('people', t.people || 1, 'People')}${stepper('stops', t.stops || 0, 'Stops')}</div>
     <label for="dt_amount" class="money">Amount<input id="dt_amount" data-dt="amount" inputmode="decimal" placeholder="0.00" value="${esc(t.amount || '')}"></label>
     <div class="pay-pick"><span>How was it paid?</span><div class="seg4">
@@ -2135,7 +2152,11 @@ function startHtml() {
     <datalist id="dlVehicles">${pastValues('vehicle').map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>
     <div class="fields">
       <label for="dDriver">Driver<input id="dDriver" list="dlDrivers" value="${esc(dev.driver || '')}" placeholder="Your name" autocomplete="off"></label>
-      <label for="dVehicle">Vehicle<input id="dVehicle" list="dlVehicles" value="${esc(dev.vehicle || '')}" placeholder="e.g. White van" autocomplete="off"></label>
+      <div class="wide veh-pick"><span>Vehicle</span><div class="veh-btns">
+        ${vehicles().map(v => `<button type="button" data-dveh="${esc(v)}" aria-pressed="${v === dev.vehicle}">${esc(v)}</button>`).join('')}
+        <button type="button" data-dveh="__other" aria-pressed="${!!dev.vehicle && !vehicles().includes(dev.vehicle)}">Other</button></div>
+        <input id="dVehicle" type="hidden" value="${esc(dev.vehicle || '')}">
+        <input id="dVehicleOther" ${dev.vehicle && !vehicles().includes(dev.vehicle) ? '' : 'hidden'} value="${esc(dev.vehicle && !vehicles().includes(dev.vehicle) ? dev.vehicle : '')}" placeholder="Which vehicle?" aria-label="Which vehicle?" autocomplete="off"></div>
       <label for="dStartKm">Start mileage (km)<input id="dStartKm" inputmode="numeric" placeholder="e.g. 184250"></label>
     </div>
     <button type="button" class="primary big" id="dStart">Start shift</button>`;
@@ -2164,6 +2185,7 @@ function shiftCard(s) {
   return `<div class="shift-card">
     <div class="sc-head"><b>${esc(niceDate(isoDate(s.startedAt)))}</b><span>${hm(s.startedAt)}–${s.endedAt ? hm(s.endedAt) : 'now'}</span></div>
     <div class="sc-who">${esc(s.driver || 'Driver')}${s.vehicle ? ' · ' + esc(s.vehicle) : ''}${km ? ' · ' + km : ''}${s.endedAt ? '' : ' <span class="live-dot">On shift</span>'}</div>
+    ${!s.endedAt && lastSeen(s.id) ? (g => `<div class="sc-seen">Last seen ${hm(g.at)}${nearestKnown(g, 300) ? ' near ' + esc(nearestKnown(g, 300)) : ''} · <a href="https://www.google.com/maps/search/?api=1&query=${mapQ(g)}" target="_blank" rel="noopener">Map</a></div>`)(lastSeen(s.id)) : ''}
     <div class="sc-sum">${t.n} trips · Cash ${money(t.cash)} · E-transfer ${money(t.etransfer)} · Tab ${money(t.tab)} · Account ${money(t.account)}</div>
     <div class="actions"><button type="button" data-dshift="${esc(s.id)}">Open</button><button type="button" data-dprint="${esc(s.id)}">Print trip record</button></div>
   </div>`;
@@ -2205,6 +2227,94 @@ function moneyHtml() {
     ${accts.length ? accts.map(x => row(x, 'account')).join('') : '<p class="empty">No account trips waiting. Trips drivers mark as "Account" show up here.</p>'}
     ${loose.length ? `<h2>Needs a customer</h2><p class="hint">A driver typed a new name for these. Edit each one and pick the customer, or add them under Customers &amp; settings first.</p>${tripRows(loose, true)}` : ''}
     <p class="hint">To make someone a tab customer, open Customers &amp; settings and change "How they pay".</p>`;
+}
+/* ---------- Location: saved at pick-up and drop-off, and checked against where a place usually is ---------- */
+const GEO_OK_M = 500;
+function vehicles() { const v = data.business && data.business.vehicles; return v && v.length ? v : DEFAULTS.business.vehicles; }
+function getGeo() {
+  return new Promise(res => {
+    if (!navigator.geolocation) return res(null);
+    let done = false; const end = v => { if (!done) { done = true; res(v); } };
+    setTimeout(() => end(null), 9000);
+    try {
+      navigator.geolocation.getCurrentPosition(
+        p => end({ lat: +p.coords.latitude.toFixed(6), lng: +p.coords.longitude.toFixed(6), acc: Math.round(p.coords.accuracy || 0), at: Date.now() }),
+        () => end(null), { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 });
+    } catch (e) { end(null); }
+  });
+}
+function distM(a, b) {
+  const R = 6371000, r = x => x * Math.PI / 180;
+  const dLat = r(b.lat - a.lat), dLng = r(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+const fmtKm = m => m < 1000 ? Math.round(m / 10) * 10 + ' m' : (m / 1000).toFixed(1) + ' km';
+/* Where a place usually is: the average of the spots recorded on earlier trips there. */
+function knownSpot(name, skipId) {
+  const key = (name || '').trim().toLowerCase(); if (!key) return null;
+  const pts = [];
+  live(data.trips).forEach(t => {
+    if (t.id === skipId || t.geoWarn) return;
+    if (t.pickupGeo && (t.pickup || '').trim().toLowerCase() === key) pts.push(t.pickupGeo);
+    if (t.dropoffGeo && (t.dropoff || '').trim().toLowerCase() === key) pts.push(t.dropoffGeo);
+  });
+  if (!pts.length) return null;
+  return { lat: pts.reduce((a, p) => a + p.lat, 0) / pts.length, lng: pts.reduce((a, p) => a + p.lng, 0) / pts.length, n: pts.length };
+}
+function nearestKnown(g, within = 300) {
+  let best = null;
+  allPlaces().forEach(name => { const k = knownSpot(name); if (!k) return; const d = distM(k, g); if (d < within && (!best || d < best.d)) best = { name, d }; });
+  return best ? best.name : null;
+}
+function geoProblems(t) {
+  const out = [];
+  [['pickup', 'pickupGeo', 'Picked up at'], ['dropoff', 'dropoffGeo', 'Dropped off at']].forEach(([f, g, label]) => {
+    if (!t[f] || !t[g]) return;
+    const k = knownSpot(t[f], t.id); if (!k) return;
+    const d = distM(k, t[g]);
+    if (d > GEO_OK_M + Math.min(t[g].acc || 0, 300)) out.push(`${label} "${t[f]}": the phone was about ${fmtKm(d)} from where that place usually is.`);
+  });
+  return out;
+}
+function finishDrop(t, confirmed) {
+  if (confirmed) t.geoWarn = geoProblems(t).join(' ');
+  t.dropoffAt = t.dropTap || Date.now(); delete t.dropTap;
+  t.status = 'done'; dev.tripId = null; saveDev();
+  save(); syncNow(); renderDrive();
+  dsay(`Trip saved: ${money(cents(t.amount))} ${PAY[t.pay].toLowerCase()}, ${dur(t.pickupAt, t.dropoffAt)}.`);
+}
+function geoNote(text) { const n = $('geoNote'); if (n) n.textContent = text; }
+async function useHere(t, f) {
+  geoNote('Finding where you are…');
+  const g = await getGeo();
+  if (!g) { geoNote('Could not get your location. Check that Location is allowed for this app.'); return; }
+  t[f + 'Geo'] = g;
+  let name = nearestKnown(g, 200);
+  if (!name) {
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&addressdetails=1&lat=${g.lat}&lon=${g.lng}`, { headers: { 'Accept-Language': 'en-CA' } });
+      const j = await r.json(), a = j.address || {};
+      const street = [a.house_number, a.road].filter(Boolean).join(' ');
+      const town = a.town || a.village || a.city || a.hamlet || a.municipality || '';
+      name = [j.name && j.name !== a.road ? j.name : '', street, town].filter(Boolean).join(', ');
+    } catch (e) {}
+  }
+  if (!name) { geoNote('Got your location, but no address for it. Type the place.'); stamp(); store(); return; }
+  t[f] = name; const inp = $('dt_' + f); if (inp) inp.value = name;
+  stamp(); store(); syncSoon(); geoNote(`Filled in from your location (within ${g.acc} m).`);
+}
+const mapQ = g => `${g.lat},${g.lng}`;
+function mapLink(t) {
+  if (t.pickupGeo && t.dropoffGeo) return `https://www.google.com/maps/dir/?api=1&origin=${mapQ(t.pickupGeo)}&destination=${mapQ(t.dropoffGeo)}`;
+  const g = t.dropoffGeo || t.pickupGeo; return g ? `https://www.google.com/maps/search/?api=1&query=${mapQ(g)}` : '';
+}
+function lastSeen(shiftId) {
+  let best = null;
+  shiftTrips(shiftId).concat(data.trips.filter(t => t.shiftId === shiftId && t.status === 'riding')).forEach(t => {
+    [t.pickupGeo, t.dropoffGeo].forEach(g => { if (g && (!best || g.at > best.at)) best = g; });
+  });
+  return best;
 }
 function renderDrive() {
   const p = $('drivePanel');
@@ -2276,7 +2386,7 @@ $('drivePanel').addEventListener('change', e => {
   }
   stamp(); store(); syncSoon(); renderDrive();
 });
-$('drivePanel').addEventListener('click', e => {
+$('drivePanel').addEventListener('click', async e => {
   const el = e.target.closest('button'); if (!el) return;
   const id = el.id, ds = el.dataset;
   const t = activeTrip();
@@ -2288,9 +2398,21 @@ $('drivePanel').addEventListener('click', e => {
     openPlaces(allPlaces(), f === 'pickup' ? 'Picked up at' : 'Dropped off at', v => { t[f] = v; const inp = $('dt_' + f); if (inp) inp.value = v; stamp(); store(); syncSoon(); });
     return;
   }
+  if (ds.dveh) {
+    el.parentElement.querySelectorAll('[data-dveh]').forEach(b => b.setAttribute('aria-pressed', String(b === el)));
+    const other = $('dVehicleOther');
+    if (ds.dveh === '__other') { other.hidden = false; other.focus(); $('dVehicle').value = ''; }
+    else { other.hidden = true; $('dVehicle').value = ds.dveh; }
+    return;
+  }
+  if (ds.dhere && t) { useHere(t, ds.dhere); return; }
+  if (id === 'dGeoOk' && t) { finishDrop(t, true); return; }
+  if (id === 'dGeoFix') { const w = $('geoWarn'); if (w) w.remove(); dsay('Fix the place, then press Dropped off again.'); return; }
   if (id === 'dStart') {
-    const driver = $('dDriver').value.trim(), vehicle = $('dVehicle').value.trim(), startKm = $('dStartKm').value.trim();
+    const other = $('dVehicleOther');
+    const driver = $('dDriver').value.trim(), vehicle = (other && !other.hidden ? other.value : $('dVehicle').value).trim(), startKm = $('dStartKm').value.trim();
     if (!driver) { dsay('Type your name first.', true); $('dDriver').focus(); return; }
+    if (!vehicle) { dsay('Pick the vehicle first.', true); return; }
     const s = { id: newId('s'), driver, vehicle, startKm, startedAt: Date.now(), endedAt: null };
     data.shifts.push(s); dev.shiftId = s.id; dev.driver = driver; dev.vehicle = vehicle; saveDev();
     save(); syncNow(); renderDrive(); dsay('Shift started. Have a good one.'); return;
@@ -2298,13 +2420,32 @@ $('drivePanel').addEventListener('click', e => {
   if (id === 'dPickup') {
     const s = myShift(); if (!s) return;
     const tr = { id: newId('t'), shiftId: s.id, driver: s.driver, vehicle: s.vehicle, date: todayISO(), pickupAt: Date.now(), dropoffAt: null, status: 'riding', people: 1, stops: 0, pay: '', amount: '', pickup: '', dropoff: '', customerId: '', rider: '', note: '' };
-    data.trips.push(tr); dev.tripId = tr.id; saveDev(); save(); renderDrive(); return;
+    data.trips.push(tr); dev.tripId = tr.id; saveDev(); save(); renderDrive();
+    getGeo().then(g => {
+      if (!g) { tr.noGeo = true; geoNote('Location is off, so this trip has no map spot.'); return; }
+      tr.pickupGeo = g;
+      if (!tr.pickup) { const near = nearestKnown(g); if (near) { tr.pickup = near; const inp = $('dt_pickup'); if (inp && !inp.value) inp.value = near; } }
+      stamp(); store(); syncSoon(); geoNote(`Pick-up spot saved (within ${g.acc} m).`);
+    });
+    return;
   }
   if (id === 'dDrop' && t) {
     const bad = tripProblem(t); if (bad) { dsay(bad, true); return; }
-    t.dropoffAt = Date.now(); t.status = 'done'; dev.tripId = null; saveDev();
-    save(); syncNow(); renderDrive();
-    dsay(`Trip saved: ${money(cents(t.amount))} ${PAY[t.pay].toLowerCase()}, ${dur(t.pickupAt, t.dropoffAt)}.`); return;
+    t.dropTap = Date.now();
+    el.disabled = true; el.textContent = 'Checking location…';
+    const g = await getGeo();
+    if (g) t.dropoffGeo = g; else t.noGeo = true;
+    const problems = geoProblems(t);
+    if (problems.length) {
+      el.disabled = false; el.textContent = 'Dropped off';
+      const w = document.createElement('div'); w.className = 'geo-warn'; w.id = 'geoWarn';
+      w.innerHTML = `<b>Check the places</b>${problems.map(x => `<span>${esc(x)}</span>`).join('')}
+        <div class="actions"><button type="button" id="dGeoFix">Let me fix it</button><button type="button" class="primary" id="dGeoOk">It's right, save it</button></div>`;
+      const old = $('geoWarn'); if (old) old.remove();
+      el.closest('.form-end').before(w);
+      return;
+    }
+    finishDrop(t, false); return;
   }
   if (id === 'dForgot') {
     const s = myShift(); if (!s) return;
