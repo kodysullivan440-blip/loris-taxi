@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lori's Taxi · Atwood, Ontario</title>
+<meta name="description" content="Lori's Taxi in Atwood, Ontario. Local rides, medical appointments and out-of-town trips around Listowel and North Perth. Call 519-313-2333.">
+<meta property="og:title" content="Lori's Taxi · Atwood, Ontario">
+<meta property="og:description" content="Local rides, medical appointments and out-of-town trips around Atwood, Listowel and North Perth. Call 519-313-2333.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="../icon-512.png">
+<meta name="theme-color" content="#c0304f">
+<link rel="icon" href="../icon-192.png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TaxiService",
+  "name": "Lori's Taxi",
+  "telephone": "+1-519-313-2333",
+  "areaServed": ["Atwood, ON", "Listowel, ON", "Monkton, ON", "Milverton, ON", "Palmerston, ON", "Gowanstown, ON", "Molesworth, ON", "Dorking, ON", "North Perth, ON"],
+  "address": { "@type": "PostalAddress", "addressLocality": "Atwood", "addressRegion": "ON", "addressCountry": "CA" },
+  "paymentAccepted": "Cash, Interac e-Transfer, Invoice"
+}
+</script>
+<style>
+:root{
+  --bg:#f6f3f0; --panel:#ffffff; --fg:#1c252d; --muted:#56636e; --line:#e2dad3;
+  --accent:#c0304f; --accent-ink:#ffffff; --soft:#f7e4e8;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#151a1f; --panel:#1f262d; --fg:#eef2f5; --muted:#a8b3bc; --line:#38434d;
+  --accent:#ec6a86; --accent-ink:#1a0d11; --soft:#3a2228; color-scheme:dark; } }
+:root[data-theme="dark"]{ --bg:#151a1f; --panel:#1f262d; --fg:#eef2f5; --muted:#a8b3bc; --line:#38434d; --accent:#ec6a86; --accent-ink:#1a0d11; --soft:#3a2228; color-scheme:dark; }
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:18px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+a{color:var(--accent)}
+.wrap{max-width:860px;margin:0 auto;padding:0 16px}
+header.hero{background:var(--accent);color:var(--accent-ink);padding:44px 0 40px}
+.hero .kicker{margin:0;font-size:15px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;opacity:.9}
+.hero h1{margin:6px 0 10px;font-size:clamp(40px,9vw,64px);line-height:1.02;letter-spacing:-.02em}
+.hero p.lede{margin:0 0 26px;font-size:clamp(19px,3.6vw,23px);max-width:34ch}
+.call{display:inline-flex;align-items:center;gap:12px;background:var(--accent-ink);color:var(--accent);text-decoration:none;font-weight:800;font-size:clamp(22px,5vw,28px);padding:16px 26px;border-radius:16px;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.call svg{width:28px;height:28px;flex:none}
+.call:focus-visible{outline:3px solid var(--accent-ink);outline-offset:4px}
+.hero small{display:block;margin-top:14px;font-size:16px;opacity:.92}
+main.wrap{padding-top:24px;padding-bottom:12px}
+section{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px 22px 20px;margin:0 0 18px}
+h2{margin:0 0 10px;font-size:24px;letter-spacing:-.01em}
+p{margin:0 0 10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:6px}
+.card{background:var(--soft);border-radius:14px;padding:14px 16px}
+.card b{display:block;font-size:19px}
+.card span{color:var(--muted);font-size:16px}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:10px 4px;border-bottom:1px solid var(--line)}
+td:last-child,th:last-child{text-align:right;font-weight:700;white-space:nowrap}
+th{font-size:15px;color:var(--muted);font-weight:600}
+tr:last-child td{border-bottom:0}
+.note{color:var(--muted);font-size:16px;margin-top:10px}
+ul.ticks{list-style:none;margin:6px 0 0;padding:0}
+ul.ticks li{padding:6px 0 6px 30px;position:relative}
+ul.ticks li::before{content:"";position:absolute;left:4px;top:15px;width:12px;height:7px;border-left:3px solid var(--accent);border-bottom:3px solid var(--accent);transform:rotate(-45deg)}
+footer{padding:8px 0 40px;color:var(--muted);font-size:16px;text-align:center}
+@media (max-width:520px){ section{padding:18px 16px} header.hero{padding:34px 0 32px} .call{width:100%;justify-content:center} }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <p class="kicker">Atwood · Listowel · North Perth</p>
+    <h1>Lori's Taxi</h1>
+    <p class="lede">Friendly, local rides around town, to appointments, and out of town.</p>
+    <a class="call" href="tel:+15193132333" aria-label="Call Lori's Taxi at 519-313-2333">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.6a1 1 0 0 1-.25 1z"/></svg>
+      519-313-2333</a>
+    <small>Call to book a ride.</small>
+  </div>
+</header>
+
+<main class="wrap">
+  <section aria-labelledby="h-rides">
+    <h2 id="h-rides">Rides we do</h2>
+    <div class="grid">
+      <div class="card"><b>Around town</b><span>Groceries, errands, visits, and getting home safely.</span></div>
+      <div class="card"><b>Appointments</b><span>Doctor, dentist, hospital and clinic visits, near or far.</span></div>
+      <div class="card"><b>Out of town</b><span>Trips across Perth County and beyond. Just ask.</span></div>
+      <div class="card"><b>Agencies and businesses</b><span>We can bill your organization each month.</span></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-rates">
+    <h2 id="h-rates">Fares</h2>
+    <table>
+      <thead><tr><th scope="col">Trip</th><th scope="col">Fare</th></tr></thead>
+      <tbody>
+        <tr><td>Anywhere in Listowel</td><td>$12.00</td></tr>
+        <tr><td>Listowel – Gowanstown</td><td>$20.00</td></tr>
+        <tr><td>Listowel – Atwood</td><td>$23.00</td></tr>
+        <tr><td>Listowel – Molesworth</td><td>$30.00</td></tr>
+        <tr><td>Listowel – Palmerston</td><td>$33.00</td></tr>
+        <tr><td>Listowel – Monkton</td><td>$50.00</td></tr>
+        <tr><td>Listowel – Dorking</td><td>$50.00</td></tr>
+        <tr><td>Listowel – Milverton</td><td>$65.00</td></tr>
+        <tr><td>Seniors rate</td><td>$11.00</td></tr>
+        <tr><td>Each extra stop</td><td>$4.00</td></tr>
+        <tr><td>Anywhere else, per km</td><td>$2.50</td></tr>
+      </tbody>
+    </table>
+    <p class="note">Not sure what your trip will cost? Call and we'll tell you before you go.</p>
+  </section>
+
+  <section aria-labelledby="h-pay">
+    <h2 id="h-pay">Paying</h2>
+    <ul class="ticks">
+      <li>Cash</li>
+      <li>Interac e-Transfer</li>
+      <li>Monthly invoices for agencies and regular accounts</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="h-access">
+    <h2 id="h-access">Everyone is welcome</h2>
+    <ul class="ticks">
+      <li>No extra charge for wheelchairs, walkers or other mobility aids.</li>
+      <li>Service animals and support persons are welcome.</li>
+      <li>Need a hand getting in or out? Tell us when you book.</li>
+    </ul>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p>Lori's Taxi · Atwood, Ontario · <a href="tel:+15193132333">519-313-2333</a></p>
+</footer>
+</body>
+</html>

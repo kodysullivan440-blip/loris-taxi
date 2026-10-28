@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Lori's Taxi</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -260,6 +261,25 @@ body.driver .m-tabs [data-view="home"],body.driver .m-tabs [data-view="invoice"]
 body.m .m-tabs{grid-template-columns:repeat(5,1fr)}
 body.m #btnDrive{display:none}
 .combo{display:flex;gap:6px;align-items:stretch}
+/* ---------- fares, cash, time off, year summary ---------- */
+.fare-hint{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-radius:10px;background:var(--bg);font-size:15px}
+.fare-hint:empty{display:none}
+.fare-btns{display:flex;gap:8px;flex-wrap:wrap}
+button.on{border-color:var(--accent);color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.cash-check{display:flex;flex-direction:column;gap:8px;padding:12px;border:2px solid var(--accent);border-radius:12px}
+.cash-line{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-top:6px;font-size:15px}
+.off-chip{display:inline-block;margin:0;padding:4px 10px;border-radius:999px;background:var(--bg);font-weight:600;font-size:14px}
+.off-chip small{font-weight:400;color:var(--muted)}
+.off-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
+.rate-rows{display:flex;flex-direction:column;gap:8px}
+.rate-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 110px auto;gap:8px;align-items:end}
+@media (max-width:520px){.rate-row{grid-template-columns:1fr 1fr}.rate-row label.money{grid-column:1}.rate-row button{align-self:center}}
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.ytable{width:100%;border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums}
+.ytable th,.ytable td{text-align:right;padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.ytable th:first-child,.ytable td:first-child{text-align:left}
+.ytable tbody tr:last-child td{border-bottom:0}
+.bk-list{display:flex;flex-wrap:wrap;gap:8px}
 /* ---------- schedule ---------- */
 .seg{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))!important}
 .sched-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -1041,6 +1061,7 @@ function ltMerge(a, b) {
   out.trips = ltById([a.trips, b.trips], gone);
   out.users = ltById([a.users, b.users], gone);
   out.sched = ltById([a.sched, b.sched], gone);
+  out.timeoff = ltById([a.timeoff, b.timeoff], gone);
   var hm = {};
   [a.history || [], b.history || []].forEach(function (list) {
     list.forEach(function (h) {
@@ -1064,7 +1085,10 @@ function ltHighest(d) {
 const KEY = 'loris-taxi-v4';
 const CFG_KEY = 'loris-taxi-sync';
 const DEFAULTS = {
-  business: { name: "LORI'S TAXI", address: "162 Main Street\nAtwood, Ontario\nN0G 1B0", phone: "519-313-2333", hst: "799722962", rate: 13, start: 356, vehicles: ['Gray Murano', 'Red Murano', 'Blue Forester'] },
+  business: { name: "LORI'S TAXI", address: "162 Main Street\nAtwood, Ontario\nN0G 1B0", phone: "519-313-2333", hst: "799722962", rate: 13, start: 356, vehicles: ['Gray Murano', 'Red Murano', 'Blue Forester'],
+    rates: { perKm: '2.50', perStop: '4.00', senior: '11.00', inTown: '12.00', town: 'Listowel',
+      list: [['Listowel', 'Atwood', '23.00'], ['Listowel', 'Monkton', '50.00'], ['Listowel', 'Milverton', '65.00'], ['Listowel', 'Palmerston', '33.00'],
+        ['Listowel', 'Gowanstown', '20.00'], ['Listowel', 'Molesworth', '30.00'], ['Listowel', 'Dorking', '50.00']].map(([from, to, price]) => ({ from, to, price })) } },
   customers: []
 };
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -1086,7 +1110,7 @@ const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 
 const NOBODY = { id: '', label: '', cols: 'trip', hst: false, email: '', billTo: '', places: [], clients: [] };
 function blankData() {
-  return { v: 5, business: { ...clone(DEFAULTS.business), _t: 1 }, customers: clone(DEFAULTS.customers).map(c => ({ ...c, _t: 1 })), history: [], shifts: [], trips: [], users: [], sched: [], gone: {}, counter: 0 };
+  return { v: 5, business: { ...clone(DEFAULTS.business), _t: 1 }, customers: clone(DEFAULTS.customers).map(c => ({ ...c, _t: 1 })), history: [], shifts: [], trips: [], users: [], sched: [], timeoff: [], gone: {}, counter: 0 };
 }
 /* bring older saved data or older backups up to date */
 function upgrade(d) {
@@ -1100,6 +1124,7 @@ function upgrade(d) {
     trips: (d.trips || []).map(x => ({ ...x, _t: x._t || 1 })),
     users: (d.users || []).map(x => ({ ...x, _t: x._t || 1 })),
     sched: (d.sched || []).map(x => ({ ...x, _t: x._t || 1 })),
+    timeoff: (d.timeoff || []).map(x => ({ ...x, _t: x._t || 1 })),
     gone: d.gone || {},
     counter: d.counter || 0
   };
@@ -1114,7 +1139,7 @@ let data = load();
 /* Remember how everything looked at the last save, so a save can mark only what changed. */
 let snap = null;
 const strip = o => { const { _t, ...r } = o; return JSON.stringify(r); };
-const KEYED = ['customers', 'shifts', 'trips', 'users', 'sched'];
+const KEYED = ['customers', 'shifts', 'trips', 'users', 'sched', 'timeoff'];
 function takeSnap() {
   snap = { biz: strip(data.business), k: {}, hist: {} };
   KEYED.forEach(k => { snap.k[k] = {}; data[k].forEach(x => { snap.k[k][x.id] = strip(x); }); });
@@ -1508,7 +1533,7 @@ function keepInvoice() {
     }
   }
   if (!cur.uid) cur.uid = newId('i');
-  const rec = { uid: cur.uid, number: String(cur.number), customerId: c.id, label: c.label, date: cur.date, trips: clone(cur.trips), total: totals().total, once: cur.customerId === ONCE ? clone(cur.once) : null };
+  const rec = { uid: cur.uid, number: String(cur.number), customerId: c.id, label: c.label, date: cur.date, trips: clone(cur.trips), total: totals().total, sub: totals().sub, hstAmt: totals().hst, once: cur.customerId === ONCE ? clone(cur.once) : null };
   if (cur.offline) rec.offline = true;
   cur.trips.forEach(x => { if (x.logId) { const lt = data.trips.find(t => t.id === x.logId); if (lt && !lt.invoiceUid) lt.invoiceUid = cur.uid; } });
   const i = data.history.findIndex(h => h.uid === rec.uid);
@@ -1734,6 +1759,7 @@ function renderSettings() {
       <label for="sVeh">Vehicles (one per line)<textarea id="sVeh" data-b="vehiclesText" rows="3">${esc((b.vehicles || []).join('\n'))}</textarea></label>
     </div>
     <label for="sAddr">Address<textarea id="sAddr" data-b="address">${esc(b.address)}</textarea></label>
+    ${ratesHtml()}
     ${peopleHtml()}
     <h2>Customers</h2>
     ${data.customers.map((c, i) => `
@@ -1767,11 +1793,15 @@ function renderSettings() {
     <h2>Backup</h2>
     <p class="hint">Everything is saved on this device${syncOn() ? ', and a copy is kept in the shared Google Sheet' : ''}. A backup file is an extra copy you can keep anywhere.</p>
     <div class="actions"><button type="button" id="btnBackup">Download backup</button><button type="button" id="btnRestore">Restore from backup</button></div>
+    ${syncOn() ? `<h3>Weekly copies</h3><p class="hint">Once a week the shared Google Sheet saves a dated copy of everything by itself, and keeps the last 8. If something gets deleted by mistake, download the copy from before it happened, then use Restore from backup.</p>
+      <div id="bkList">${bkListHtml()}</div>` : ''}
     <div class="status" id="sStatus" role="status" aria-live="polite"></div>
   </div>`;
 }
 $('settingsPanel').addEventListener('input', e => {
   const t = e.target;
+  if (t.dataset.rate) { rates()[t.dataset.rate] = t.value; save(); return; }
+  if (t.dataset.rrow !== undefined) { rates().list[+t.dataset.rrow][t.dataset.rf] = t.value; save(); return; }
   if (t.dataset.b === 'vehiclesText') data.business.vehicles = t.value.split('\n').map(x => x.trim()).filter(Boolean);
   else if (t.dataset.b) data.business[t.dataset.b] = t.value;
   if (t.dataset.c) { const c = data.customers[+t.closest('[data-ci]').dataset.ci]; c[t.dataset.c] = t.type === 'checkbox' ? t.checked : t.value; if (t.dataset.c === 'cols') { save(); renderSettings(); return; } }
@@ -1805,6 +1835,11 @@ $('settingsPanel').addEventListener('click', e => {
     }
   }
   if (t.id === 'btnRestore') $('restoreFile').click();
+  if (t.id === 'rAdd') { rates().list.push({ from: '', to: '', price: '' }); save(); renderSettings(); return; }
+  if (t.dataset.rdel !== undefined) { rates().list.splice(+t.dataset.rdel, 1); save(); renderSettings(); return; }
+  if (t.id === 'rPrint') { printPages(rateCardHtml(), false, "Lori's Taxi rate card", 'rMsg'); return; }
+  if (t.id === 'bkLoad') { loadBackups(); return; }
+  if (t.dataset.bk) { downloadBackup(t.dataset.bk, t); return; }
 });
 $('restoreFile').addEventListener('change', e => {
   const f = e.target.files[0]; if (!f) return;
@@ -2176,7 +2211,7 @@ $('btnSignOut').addEventListener('click', () => {
 let confirmSignOut = false;
 
 /* ---------- People who sign in (set up on Lori's own devices) ---------- */
-let personEdit = null, pendingRemovePerson = null;
+let personEdit = null, pendingRemovePerson = null, pendingSignout = null, peopleNote = {};
 async function pinHash(salt, pin) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(salt + ':' + pin));
   return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
@@ -2187,11 +2222,12 @@ function peopleHtml() {
   return `<h2 id="peopleHead">People who sign in</h2>
     <p class="hint">On a shared phone (like the taxi phone), each person taps their name and types their PIN. Drivers only ever see their own shifts and trips. Add Lori as the owner so she can sign in on the taxi phone too.</p>
     ${list.length ? `<div class="people-list">${list.map(u => `<div class="person-row">
-      <div><b>${esc(u.name)}</b><small>${u.role === 'owner' ? 'Owner: sees everything' : 'Driver: only their own shifts'}</small></div>
+      <div><b>${esc(u.name)}</b><small>${u.role === 'owner' ? 'Owner: sees everything' : 'Driver: only their own shifts'}${u.signoutAt ? ` · signed out of all phones ${esc(niceDate(isoDate(u.signoutAt)))}` : ''}</small></div>
       ${personEdit === u.id ? `<span class="pin-set"><input type="password" inputmode="numeric" maxlength="4" id="pinNew" placeholder="New PIN" aria-label="New 4-digit PIN" autocomplete="off">
           <input type="password" inputmode="numeric" maxlength="4" id="pinNew2" placeholder="Again" aria-label="New PIN again" autocomplete="off">
           <button type="button" class="primary" data-pinsave="${esc(u.id)}">Save PIN</button></span>`
         : `<span class="person-btns"><button type="button" class="small" data-pinedit="${esc(u.id)}">Change PIN</button>
+          <button type="button" class="small" data-psignout="${esc(u.id)}">${pendingSignout === u.id ? 'Press again to sign out' : 'Sign out their phones'}</button>
           <button type="button" class="small" data-premove="${esc(u.id)}">${pendingRemovePerson === u.id ? 'Press again to remove' : 'Remove'}</button></span>`}
     </div>`).join('')}</div>` : '<p class="empty">Nobody yet.</p>'}
     <div class="add-person"><b>Add a person</b>
@@ -2202,11 +2238,12 @@ function peopleHtml() {
         <label for="npPin2">PIN again<input id="npPin2" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></label>
       </div>
       <button type="button" class="primary" id="btnAddPerson">Add person</button></div>
-    <div class="status" id="peopleMsg" role="status" aria-live="polite"></div>`;
+    <div class="status${peopleNote.bad ? ' bad' : ''}" id="peopleMsg" role="status" aria-live="polite">${esc(peopleNote.t || '')}</div>`;
 }
 $('settingsPanel').addEventListener('click', async e => {
   const b = e.target.closest('button'); if (!b) return;
-  const say = (t, bad) => { const m = $('peopleMsg'); if (m) { m.textContent = t; m.classList.toggle('bad', !!bad); } };
+  const say = (t, bad) => { peopleNote = { t, bad }; const m = $('peopleMsg'); if (m) { m.textContent = t; m.classList.toggle('bad', !!bad); } };
+  if (b.closest('.people-list, .add-person')) peopleNote = {};
   const okPin = x => /^\d{4}$/.test(x);
   if (b.id === 'btnAddPerson') {
     const name = $('npName').value.trim(), role = $('npRole').value, p1 = $('npPin').value, p2 = $('npPin2').value;
@@ -2217,6 +2254,11 @@ $('settingsPanel').addEventListener('click', async e => {
     const salt = newSalt();
     data.users.push({ id: newId('u'), name, role, salt, pinHash: await pinHash(salt, p1) });
     save(); syncNow(); renderSettings(); say(`${name} can now sign in on a shared phone.`); return;
+  }
+  if (b.dataset.psignout) {
+    if (pendingSignout !== b.dataset.psignout) { pendingSignout = b.dataset.psignout; renderSettings(); return; }
+    const u = data.users.find(x => x.id === b.dataset.psignout); u.signoutAt = Date.now(); pendingSignout = null;
+    save(); syncNow(); renderSettings(); say(`${u.name} is signed out on every phone. They can sign back in with their PIN. If a phone was lost or stolen, change their PIN too.`); return;
   }
   if (b.dataset.pinedit) { personEdit = b.dataset.pinedit; renderSettings(); const n = $('pinNew'); if (n) n.focus(); return; }
   if (b.dataset.pinsave) {
@@ -2371,6 +2413,7 @@ function tripFormHtml(t, mode) {
     <p class="geo-note" id="geoNote">${t.pickupGeo ? `Pick-up spot saved (within ${t.pickupGeo.acc} m).` : t.noGeo ? 'Location is off, so this trip has no map spot.' : riding ? 'Saving the pick-up spot…' : ''}</p>
     <div class="steppers">${stepper('people', t.people || 1, 'People')}${stepper('stops', t.stops || 0, 'Stops')}</div>
     <label for="dt_amount" class="money">Amount<input id="dt_amount" data-dt="amount" inputmode="decimal" placeholder="0.00" value="${esc(t.amount || '')}"></label>
+    <div class="fare-hint" id="fareHint">${fareHintHtml(t)}</div>
     <div class="pay-pick"><span>How was it paid?</span><div class="seg4">
       ${Object.entries(PAY).map(([k, l]) => `<button type="button" data-dpay="${k}" aria-pressed="${t.pay === k}">${l}</button>`).join('')}</div></div>
     ${t.pay === 'tab' || t.pay === 'account' ? `
@@ -2399,8 +2442,9 @@ function startHtml() {
   const last = session ? data.shifts.filter(s => s.driverId === session.id && s.endedAt).sort((a, b) => b.endedAt - a.endedAt)[0] : (dev.lastShiftId && data.shifts.find(s => s.id === dev.lastShiftId));
   const lt = last ? sums(shiftTrips(last.id)) : null;
   return `${last ? `<div class="card-soft"><b>Last shift: ${esc(niceDate(isoDate(last.startedAt)))}, ${lt.n} trips, ${money(lt.all)}</b>
-      ${sumsHtml(lt)}<div class="actions"><button type="button" data-dprint="${esc(last.id)}">Print trip record</button></div></div>` : ''}
+      ${sumsHtml(lt)}${cashLine(last)}<div class="actions"><button type="button" data-dprint="${esc(last.id)}">Print trip record</button></div></div>` : ''}
     ${upcomingHtml()}
+    ${session ? timeOffDriverHtml() : ''}
     <h2>Start a shift</h2>
     <datalist id="dlDrivers">${pastValues('driver').map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>
     <datalist id="dlVehicles">${pastValues('vehicle').map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>
@@ -2429,7 +2473,9 @@ function myShiftHtml() {
     ${tripRows(trips.filter(x => x.status === 'done'), true)}
     ${sumsHtml(t)}
     <div class="end-shift">
-      ${pendingEnd ? `<label for="dEndKm">End mileage (km)<input id="dEndKm" inputmode="numeric" placeholder="e.g. 184410"></label>
+      ${pendingEnd ? `<div class="cash-check"><b>Cash check</b><span>Your trips this shift add up to <b>${money(t.cash)}</b> in cash.</span>
+          <label for="dCashIn" class="money">Cash you are handing in<input id="dCashIn" inputmode="decimal" value="${(t.cash / 100).toFixed(2)}"></label></div>
+        <label for="dEndKm">End mileage (km)<input id="dEndKm" inputmode="numeric" placeholder="e.g. 184410"></label>
         <div class="actions"><button type="button" class="primary" id="dEndNow">End shift now</button><button type="button" id="dEndCancel">Not yet</button></div>`
         : `<button type="button" id="dEnd">End shift</button>`}
     </div>`;
@@ -2442,6 +2488,7 @@ function shiftCard(s) {
     <div class="sc-who">${esc(s.driver || 'Driver')}${s.vehicle ? ' · ' + esc(s.vehicle) : ''}${km ? ' · ' + km : ''}${s.endedAt ? '' : ' <span class="live-dot">On shift</span>'}</div>
     ${!s.endedAt && lastSeen(s.id) ? (g => `<div class="sc-seen">Last seen ${hm(g.at)}${nearestKnown(g, 300) ? ' near ' + esc(nearestKnown(g, 300)) : ''} · <a href="https://www.google.com/maps/search/?api=1&query=${mapQ(g)}" target="_blank" rel="noopener">Map</a></div>`)(lastSeen(s.id)) : ''}
     <div class="sc-sum">${t.n} trips · Cash ${money(t.cash)} · E-transfer ${money(t.etransfer)} · Tab ${money(t.tab)} · Account ${money(t.account)}</div>
+    ${cashLine(s, !isDriver())}
     <div class="actions"><button type="button" data-dshift="${esc(s.id)}">Open</button><button type="button" data-dprint="${esc(s.id)}">Print trip record</button></div>
   </div>`;
 }
@@ -2556,7 +2603,7 @@ async function useHere(t, f) {
     } catch (e) {}
   }
   if (!name) { geoNote('Got your location, but no address for it. Type the place.'); stamp(); store(); return; }
-  t[f] = name; const inp = $('dt_' + f); if (inp) inp.value = name;
+  t[f] = name; const inp = $('dt_' + f); if (inp) inp.value = name; refreshFare(t);
   stamp(); store(); syncSoon(); geoNote(`Filled in from your location (within ${g.acc} m).`);
 }
 const mapQ = g => `${g.lat},${g.lng}`;
@@ -2615,7 +2662,7 @@ function tripProblem(t) {
 $('drivePanel').addEventListener('input', e => {
   const t = activeTrip(); const el = e.target;
   if (!t) return;
-  if (el.dataset.dt) { t[el.dataset.dt] = el.value; saveSoonDrive(); }
+  if (el.dataset.dt) { t[el.dataset.dt] = el.value; saveSoonDrive(); if (el.dataset.dt === 'pickup' || el.dataset.dt === 'dropoff') refreshFare(t); }
   if (el.dataset.dtime) {
     const date = $('dt_date') ? $('dt_date').value : t.date;
     t.date = date || t.date;
@@ -2647,11 +2694,11 @@ $('drivePanel').addEventListener('click', async e => {
   const id = el.id, ds = el.dataset;
   const t = activeTrip();
   if (ds.dtab) { driveTab = ds.dtab; driveShiftView = null; pendingPaid = null; renderDrive(); return; }
-  if (ds.step && t) { t[ds.step] = Math.max(ds.step === 'people' ? 1 : 0, (Number(t[ds.step]) || (ds.step === 'people' ? 1 : 0)) + Number(ds.delta)); $('dt_' + ds.step).textContent = t[ds.step]; saveSoonDrive(); return; }
+  if (ds.step && t) { t[ds.step] = Math.max(ds.step === 'people' ? 1 : 0, (Number(t[ds.step]) || (ds.step === 'people' ? 1 : 0)) + Number(ds.delta)); $('dt_' + ds.step).textContent = t[ds.step]; saveSoonDrive(); refreshFare(t); return; }
   if (ds.dpay && t) { t.pay = ds.dpay; if (t.pay === 'cash' || t.pay === 'etransfer') { t.customerId = ''; t.newName = null; t.rider = ''; } else if (t.customerId && !data.customers.some(c => c.id === t.customerId && (t.pay === 'tab' ? kindOf(c).startsWith('tab') : !kindOf(c).startsWith('tab')))) t.customerId = ''; stamp(); store(); renderDrive(); return; }
   if (ds.dplace && t) {
     const f = ds.dplace;
-    openPlaces(allPlaces(), f === 'pickup' ? 'Picked up at' : 'Dropped off at', v => { t[f] = v; const inp = $('dt_' + f); if (inp) inp.value = v; stamp(); store(); syncSoon(); });
+    openPlaces(allPlaces(), f === 'pickup' ? 'Picked up at' : 'Dropped off at', v => { t[f] = v; const inp = $('dt_' + f); if (inp) inp.value = v; stamp(); store(); syncSoon(); refreshFare(t); });
     return;
   }
   if (ds.dveh) {
@@ -2662,6 +2709,7 @@ $('drivePanel').addEventListener('click', async e => {
     return;
   }
   if (ds.dhere && t) { useHere(t, ds.dhere); return; }
+  if (ds.dfare && t) { t.amount = ds.dfare; const a = $('dt_amount'); if (a) a.value = ds.dfare; saveSoonDrive(); refreshFare(t); return; }
   if (id === 'dGeoOk' && t) { finishDrop(t, true); return; }
   if (id === 'dGeoFix') { const w = $('geoWarn'); if (w) w.remove(); dsay('Fix the place, then press Dropped off again.'); return; }
   if (id === 'dStart') {
@@ -2680,7 +2728,7 @@ $('drivePanel').addEventListener('click', async e => {
     getGeo().then(g => {
       if (!g) { tr.noGeo = true; geoNote('Location is off, so this trip has no map spot.'); return; }
       tr.pickupGeo = g;
-      if (!tr.pickup) { const near = nearestKnown(g); if (near) { tr.pickup = near; const inp = $('dt_pickup'); if (inp && !inp.value) inp.value = near; } }
+      if (!tr.pickup) { const near = nearestKnown(g); if (near) { tr.pickup = near; const inp = $('dt_pickup'); if (inp && !inp.value) inp.value = near; refreshFare(tr); } }
       stamp(); store(); syncSoon(); geoNote(`Pick-up spot saved (within ${g.acc} m).`);
     });
     return;
@@ -2730,10 +2778,12 @@ $('drivePanel').addEventListener('click', async e => {
   if (id === 'dEndNow') {
     const s = myShift(); if (!s) return;
     s.endKm = $('dEndKm').value.trim(); s.endedAt = Date.now();
+    s.cashDue = sums(shiftTrips(s.id)).cash; s.cashIn = $('dCashIn') ? cents($('dCashIn').value) : s.cashDue;
     dev.lastShiftId = s.id; dev.shiftId = null; saveDev(); pendingEnd = false;
-    save(); syncNow(); renderDrive(); dsay('Shift ended. Totals are below, and you can print the trip record.'); return;
+    save(); syncNow(); renderDrive(); dsay(s.cashDue || s.cashIn ? `Shift ended. Hand ${money(s.cashIn)} cash to Lori, and she'll mark it received.` : 'Shift ended. Totals are below, and you can print the trip record.'); return;
   }
   if (ds.dshift) { driveShiftView = ds.dshift; renderDrive(); scrollTo({ top: 0 }); return; }
+  if (ds.cashok && !isDriver()) { markCash(ds.cashok); renderDrive(); return; }
   if (id === 'dBack') { driveShiftView = null; renderDrive(); return; }
   if (id === 'dCloseShift') { const s = data.shifts.find(x => x.id === el.dataset.id); if (s) { s.endedAt = Date.now(); save(); renderDrive(); } return; }
   if (ds.dprint) {
@@ -2809,6 +2859,263 @@ function filledRecordHtml(s) {
   return html;
 }
 
+/* ---------- Rate chart: suggests the fare on a trip ---------- */
+function rates() {
+  const b = data.business;
+  if (!b.rates || !b.rates.list) b.rates = clone(DEFAULTS.business.rates);
+  return b.rates;
+}
+const townKey = s => String(s || '').toLowerCase().replace(/[^a-z]/g, '');
+function townIn(text) {
+  const words = String(text || '').toLowerCase();
+  const towns = new Set([rates().town]); rates().list.forEach(r => { towns.add(r.from); towns.add(r.to); });
+  let best = '';
+  towns.forEach(tn => { const k = String(tn || '').trim().toLowerCase(); if (k && new RegExp('\\b' + k.replace(/[^a-z ]/g, '') + '\\b').test(words) && k.length > best.length) best = tn; });
+  return best;
+}
+function fareFor(t) {
+  const r = rates(), a = townIn(t.pickup), b = townIn(t.dropoff), stops = Number(t.stops) || 0;
+  const add = c => c + stops * cents(r.perStop);
+  if (!a || !b) return null;
+  if (townKey(a) === townKey(b)) return townKey(a) === townKey(r.town) && cents(r.inTown) ? { c: add(cents(r.inTown)), why: `in ${r.town}` } : null;
+  const row = r.list.find(x => (townKey(x.from) === townKey(a) && townKey(x.to) === townKey(b)) || (townKey(x.from) === townKey(b) && townKey(x.to) === townKey(a)));
+  return row && cents(row.price) ? { c: add(cents(row.price)), why: `${row.from} – ${row.to}` } : null;
+}
+function fareHintHtml(t) {
+  const r = rates(), f = fareFor(t), stops = Number(t.stops) || 0, val = c => (c / 100).toFixed(2);
+  const stopTxt = stops ? ` + ${stops} stop${stops === 1 ? '' : 's'}` : '';
+  const btn = (c, label) => `<button type="button" class="small${cents(t.amount) === c ? ' on' : ''}" data-dfare="${val(c)}">${label} ${money(c)}</button>`;
+  return `<span>${f ? `Rate chart (${esc(f.why)}${stopTxt}):` : `Not on the rate chart: ${money(cents(r.perKm))} per km${r.perStop ? `, ${money(cents(r.perStop))} per stop` : ''}.`}</span>
+    <span class="fare-btns">${f ? btn(f.c, 'Use') : ''}${cents(r.senior) ? btn(cents(r.senior) + stops * cents(r.perStop), 'Seniors') : ''}</span>`;
+}
+function refreshFare(t) { const h = $('fareHint'); if (h) h.innerHTML = fareHintHtml(t); }
+function ratesHtml() {
+  const r = rates();
+  return `<h2 id="ratesHead">Rate chart</h2>
+    <p class="hint">Drivers see the matching fare when they type where they picked up and dropped off. Prices work both ways (Atwood to Listowel is the same as Listowel to Atwood).</p>
+    <div class="fields">
+      <label for="rKm" class="money">Per km (not on the chart)<input id="rKm" data-rate="perKm" inputmode="decimal" value="${esc(r.perKm)}"></label>
+      <label for="rStop" class="money">Per extra stop<input id="rStop" data-rate="perStop" inputmode="decimal" value="${esc(r.perStop)}"></label>
+      <label for="rSen" class="money">Seniors rate<input id="rSen" data-rate="senior" inputmode="decimal" value="${esc(r.senior)}"></label>
+      <label for="rTown">In-town rides in<input id="rTown" data-rate="town" value="${esc(r.town)}"></label>
+      <label for="rIn" class="money">In-town price<input id="rIn" data-rate="inTown" inputmode="decimal" value="${esc(r.inTown)}"></label>
+    </div>
+    <div class="rate-rows">${r.list.map((x, i) => `<div class="rate-row">
+      <label for="rf${i}">From<input id="rf${i}" data-rrow="${i}" data-rf="from" value="${esc(x.from)}"></label>
+      <label for="rt${i}">To<input id="rt${i}" data-rrow="${i}" data-rf="to" value="${esc(x.to)}"></label>
+      <label for="rp${i}" class="money">Price<input id="rp${i}" data-rrow="${i}" data-rf="price" inputmode="decimal" value="${esc(x.price)}"></label>
+      <button type="button" class="small" data-rdel="${i}" aria-label="Remove ${esc(x.from)} to ${esc(x.to)}">Remove</button></div>`).join('')}</div>
+    <div class="actions"><button type="button" id="rAdd">+ Add a run</button><button type="button" id="rPrint">Print the rate card (for the cars)</button></div>
+    <div class="status" id="rMsg" role="status" aria-live="polite"></div>`;
+}
+function rateCardHtml() {
+  const r = rates(), b = data.business;
+  return `<div class="sh port ratecard"><h1>${esc(b.name || "LORI'S TAXI")} · Rate Card</h1>
+    <div class="meta"><span>Phone: <b>${esc(b.phone)}</b></span><span>${esc((b.address || '').split('\n').join(', '))}</span></div>
+    <table style="margin-top:14px"><colgroup><col style="width:38%"><col style="width:38%"><col style="width:24%"></colgroup>
+      <thead><tr><th>From</th><th>To</th><th>Fare</th></tr></thead>
+      <tbody>${r.list.map(x => `<tr><td class="fill">${esc(x.from)}</td><td class="fill">${esc(x.to)}</td><td class="fill">${money(cents(x.price))}</td></tr>`).join('')}
+        ${cents(r.inTown) ? `<tr><td class="fill" colspan="2">Anywhere in ${esc(r.town)}</td><td class="fill">${money(cents(r.inTown))}</td></tr>` : ''}
+        ${cents(r.senior) ? `<tr><td class="fill" colspan="2">Seniors rate</td><td class="fill">${money(cents(r.senior))}</td></tr>` : ''}
+        ${cents(r.perStop) ? `<tr><td class="fill" colspan="2">Each extra stop</td><td class="fill">${money(cents(r.perStop))}</td></tr>` : ''}
+        ${cents(r.perKm) ? `<tr><td class="fill" colspan="2">Anywhere not listed, per km</td><td class="fill">${money(cents(r.perKm))}</td></tr>` : ''}</tbody></table>
+    <p style="margin-top:16px;font-size:14px">The fare is the same both ways. No extra charge for wheelchairs, walkers or other mobility aids. Service animals and support persons are welcome.</p></div>`;
+}
+
+/* ---------- Cash check: the driver says what cash they hand in, Lori marks it received ---------- */
+function cashLine(s, canMark) {
+  if (!s.endedAt || (s.cashDue === undefined && s.cashIn === undefined)) return '';
+  const diff = (s.cashIn || 0) - (s.cashDue || 0);
+  const off = diff ? ` <span class="late">${diff > 0 ? money(diff) + ' more' : money(-diff) + ' less'} than the trips add up to</span>` : '';
+  if (!s.cashDue && !s.cashIn) return '';
+  return `<div class="cash-line">Cash handed in: <b>${money(s.cashIn || 0)}</b>${off}
+    ${s.cashOk ? `<span class="ok-txt">Received by ${esc(s.cashOkBy || 'Lori')} ✓</span>` : canMark ? `<button type="button" class="small primary" data-cashok="${esc(s.id)}">Got the cash</button>` : '<span class="muted">Waiting for Lori to mark it received</span>'}</div>`;
+}
+function markCash(id) {
+  const s = data.shifts.find(x => x.id === id); if (!s) return;
+  s.cashOk = Date.now(); s.cashOkBy = session ? session.name : 'Lori';
+  save(); syncNow(); setStatus(`Cash from ${s.driver || 'the driver'} marked received.`);
+}
+function cashWaitingHtml() {
+  const list = data.shifts.filter(s => s.endedAt && !s.void && !s.cashOk && (s.cashIn || s.cashDue)).sort((a, b) => a.endedAt - b.endedAt);
+  if (!list.length) return '';
+  return `<section class="step"><h3>Cash to collect</h3><div class="sched-mini">${list.map(s => {
+    const diff = (s.cashIn || 0) - (s.cashDue || 0);
+    return `<div><b>${esc(s.driver || 'Driver')}</b><span>${esc(niceDate(isoDate(s.startedAt)))} · ${money(s.cashIn || 0)}${diff ? ` <span class="late">(trips say ${money(s.cashDue || 0)})</span>` : ''}</span>
+      <button type="button" class="small primary" data-cashok="${esc(s.id)}">Got it</button></div>`;
+  }).join('')}</div></section>`;
+}
+
+/* ---------- Time off: drivers ask, Lori or Raymond approve ---------- */
+let offForm = false;
+function offOn(date) { return (data.timeoff || []).filter(o => !o.void && o.status === 'ok' && o.from <= date && (o.to || o.from) >= date); }
+function offRange(o) { return o.to && o.to !== o.from ? `${niceDate(o.from)} to ${niceDate(o.to)}` : niceDate(o.from); }
+const OFF_STATUS = { asked: 'Waiting for an answer', ok: 'Approved', no: 'Not approved' };
+function timeOffDriverHtml() {
+  const mine = (data.timeoff || []).filter(o => o.userId === session.id && !o.void && (o.to || o.from) >= todayISO()).sort((a, b) => a.from.localeCompare(b.from));
+  return `<div class="card-soft"><b>Time off</b>
+    ${mine.map(o => `<div class="off-row"><span><b>${esc(offRange(o))}</b>${o.note ? ` · ${esc(o.note)}` : ''}</span>
+      <span class="${o.status === 'ok' ? 'ok-txt' : o.status === 'no' ? 'late' : 'muted'}">${OFF_STATUS[o.status] || ''}</span>
+      ${o.status === 'asked' ? `<button type="button" class="small" data-offcancel="${esc(o.id)}">Take back</button>` : ''}</div>`).join('')}
+    ${offForm ? `<div class="fields">
+        <label for="offFrom">First day off<input id="offFrom" type="date" value="${todayISO()}"></label>
+        <label for="offTo">Last day off<input id="offTo" type="date" value="${todayISO()}"></label>
+        <label for="offNote">Reason (if you like)<input id="offNote" placeholder="e.g. Doctor's appointment"></label></div>
+      <div class="actions"><button type="button" class="primary" id="offSend">Send request</button><button type="button" id="offCancel">Cancel</button></div>`
+      : `<div class="actions"><button type="button" id="offAsk">Ask for time off</button></div>`}</div>`;
+}
+function offRequestsHtml() {
+  const list = (data.timeoff || []).filter(o => o.status === 'asked' && !o.void).sort((a, b) => a.from.localeCompare(b.from));
+  if (!list.length) return '';
+  return `<div class="card-soft"><b>Time-off requests</b>${list.map(o => `<div class="off-row">
+    <span><b>${esc(userName(o.userId))}</b>: ${esc(offRange(o))}${o.note ? ` · ${esc(o.note)}` : ''}${schedFor(o.from).some(x => x.userId === o.userId) ? ' <span class="late">(has a shift then)</span>' : ''}</span>
+    <span class="fare-btns"><button type="button" class="small primary" data-offok="${esc(o.id)}">Approve</button><button type="button" class="small" data-offno="${esc(o.id)}">Say no</button></span></div>`).join('')}</div>`;
+}
+$('drivePanel').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || !session) return;
+  if (b.id === 'offAsk') { offForm = true; renderDrive(); return; }
+  if (b.id === 'offCancel') { offForm = false; renderDrive(); return; }
+  if (b.id === 'offSend') {
+    const from = $('offFrom').value, to = $('offTo').value || from, note = $('offNote').value.trim();
+    if (!from) { dsay('Pick the first day off.', true); return; }
+    if (to < from) { dsay('The last day off is before the first day.', true); return; }
+    data.timeoff.push({ id: newId('o'), userId: session.id, name: session.name, from, to, note, status: 'asked', askedAt: Date.now() });
+    offForm = false; save(); syncNow(); renderDrive(); dsay('Request sent. Lori will say yes or no here.'); return;
+  }
+  if (b.dataset.offcancel) { const o = data.timeoff.find(x => x.id === b.dataset.offcancel); if (o) o.void = true; save(); syncNow(); renderDrive(); dsay('Request taken back.'); }
+});
+
+/* ---------- Weekly copies kept in the Google Sheet ---------- */
+let bkState = null;
+function bkListHtml() {
+  if (!bkState) return `<div class="actions"><button type="button" id="bkLoad">Show weekly copies</button></div>`;
+  if (bkState === 'loading') return '<p class="hint">Looking…</p>';
+  if (bkState.err) return `<p class="status bad">${esc(bkState.err)}</p><div class="actions"><button type="button" id="bkLoad">Try again</button></div>`;
+  if (!bkState.list.length) return '<p class="empty">No weekly copies yet. The first one is made the next time this device syncs.</p>';
+  return `<div class="bk-list">${bkState.list.map(d => `<button type="button" class="small" data-bk="${esc(d)}">Download copy from ${esc(niceDate(d))}</button>`).join('')}</div>`;
+}
+async function loadBackups() {
+  bkState = 'loading'; $('bkList').innerHTML = bkListHtml();
+  try { const j = await callSync('backups'); bkState = { list: j.backups || [] }; }
+  catch (e) { bkState = { err: 'Could not get the list: ' + errText(e) + '.' }; }
+  if ($('bkList')) $('bkList').innerHTML = bkListHtml();
+}
+async function downloadBackup(date, btn) {
+  btn.disabled = true; btn.textContent = 'Getting it…';
+  try {
+    const j = await callSync('getBackup', { date });
+    const name = `loris-taxi-weekly-copy-${date}.json`, blob = new Blob([JSON.stringify(j.backup, null, 2)], { type: 'application/json' });
+    if (SHARE_MODE) await navigator.share({ files: [new File([blob], name, { type: 'application/json' })], title: name }).catch(() => {});
+    else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
+    $('sStatus').textContent = `Copy from ${niceDate(date)} downloaded. To bring it back, press Restore from backup and pick that file.`;
+  } catch (e) { $('sStatus').textContent = 'Could not get that copy: ' + errText(e) + '.'; }
+  btn.disabled = false; btn.textContent = `Download copy from ${niceDate(date)}`;
+}
+
+/* ---------- Year summary for taxes and the accountant ---------- */
+let homeSub = null, yearSel = new Date().getFullYear();
+function yearData(y) {
+  const inY = iso => String(iso || '').slice(0, 4) === String(y);
+  const months = MONTHS.map(() => ({ inv: 0, invHst: 0, cash: 0, etransfer: 0, tabPaid: 0, trips: 0 }));
+  const invs = data.history.filter(h => inY(h.date) && !h.void);
+  const byCust = {};
+  invs.forEach(h => {
+    const sub = h.sub !== undefined ? h.sub : (h.trips || []).reduce((a, t) => a + cents(t.amount), 0);
+    const hst = h.hstAmt !== undefined ? h.hstAmt : Math.max(0, (h.total || 0) - sub);
+    const m = months[parts(h.date).m - 1]; m.inv += sub; m.invHst += hst;
+    const k = h.label || 'One-time'; byCust[k] = byCust[k] || { n: 0, sub: 0, hst: 0 }; byCust[k].n++; byCust[k].sub += sub; byCust[k].hst += hst;
+  });
+  const trips = live(data.trips).filter(t => t.status === 'done' && inY(t.date));
+  trips.forEach(t => {
+    const m = months[parts(t.date).m - 1], c = cents(t.amount); m.trips++;
+    if (t.pay === 'cash') m.cash += c; else if (t.pay === 'etransfer') m.etransfer += c;
+    else if (t.pay === 'tab' && t.paidAt && !t.invoiceUid) m.tabPaid += c;
+  });
+  const shifts = data.shifts.filter(s => !s.void && inY(isoDate(s.startedAt || 0)));
+  const cars = {}, drivers = {};
+  shifts.forEach(s => {
+    const v = s.vehicle || 'Not recorded', km = Number(s.endKm) && Number(s.startKm) && Number(s.endKm) > Number(s.startKm) ? Number(s.endKm) - Number(s.startKm) : 0;
+    const c = cars[v] = cars[v] || { km: 0, shifts: 0, first: null, last: null }; c.km += km; c.shifts++;
+    [Number(s.startKm), Number(s.endKm)].filter(Boolean).forEach(o => { c.first = c.first === null ? o : Math.min(c.first, o); c.last = c.last === null ? o : Math.max(c.last, o); });
+    const d = drivers[s.driver || 'Driver'] = drivers[s.driver || 'Driver'] || { days: new Set(), shifts: 0, mins: 0, trips: 0, fares: 0 };
+    d.shifts++; d.days.add(isoDate(s.startedAt)); if (s.endedAt) d.mins += Math.round((s.endedAt - s.startedAt) / 60000);
+    const st = sums(shiftTrips(s.id)); d.trips += st.n; d.fares += st.all;
+  });
+  const tot = months.reduce((a, m) => { for (const k in m) a[k] = (a[k] || 0) + m[k]; return a; }, {});
+  const rate = Number(data.business.rate) || 13;
+  tot.income = tot.inv + tot.cash + tot.etransfer + tot.tabPaid;
+  tot.hstInside = Math.round((tot.cash + tot.etransfer + tot.tabPaid) * rate / (100 + rate));
+  return { y, months, byCust, cars, drivers, tot, invCount: invs.length, rate };
+}
+function yearHtml() {
+  const Y = yearData(yearSel), t = Y.tot, now = new Date().getFullYear();
+  const row = (label, m) => `<tr><td>${label}</td><td>${money(m.inv)}</td><td>${money(m.invHst)}</td><td>${money(m.cash)}</td><td>${money(m.etransfer)}</td><td>${money(m.tabPaid)}</td><td><b>${money(m.inv + m.cash + m.etransfer + m.tabPaid)}</b></td></tr>`;
+  return `<button type="button" class="link back" id="yBack">‹ Home</button>
+    <div class="home-hero"><div><small>For taxes and the accountant</small><h2>${Y.y} summary</h2></div>
+      <span class="fare-btns">${[now - 1, now].map(y => `<button type="button" class="small${y === Y.y ? ' on' : ''}" data-year="${y}">${y}</button>`).join('')}</span></div>
+    <div class="actions"><button type="button" class="primary" id="yPrint">Print or save as PDF</button><button type="button" id="yCsv">Download spreadsheet for the accountant</button></div>
+    <div class="status" id="yMsg" role="status" aria-live="polite"></div>
+    <div class="home-grid">
+      <section class="step"><h3>Money in</h3><p class="big-num">${money(t.income)}</p>
+        <div class="money-grid"><div><small>Invoices (before HST)</small><b>${money(t.inv)}</b></div><div><small>Cash fares</small><b>${money(t.cash)}</b></div>
+          <div><small>E-transfer fares</small><b>${money(t.etransfer)}</b></div><div><small>Tabs paid off</small><b>${money(t.tabPaid)}</b></div></div></section>
+      <section class="step"><h3>HST</h3><p class="big-num">${money(t.invHst)}</p><p class="hint">HST added on ${Y.invCount} invoice${Y.invCount === 1 ? '' : 's'}.</p>
+        <p class="hint">If your cash, e-transfer and tab fares already include HST, the HST inside them is about <b>${money(t.hstInside)}</b> (${Y.rate}/${100 + Y.rate} of those fares). Ask the accountant which way you charge it.</p></section>
+    </div>
+    <section class="step"><h3>Month by month</h3><div class="table-wrap"><table class="ytable">
+      <thead><tr><th>Month</th><th>Invoices</th><th>HST on invoices</th><th>Cash</th><th>E-transfer</th><th>Tabs paid</th><th>Total</th></tr></thead>
+      <tbody>${Y.months.map((m, i) => row(MONTHS[i], m)).join('')}${row('<b>Year</b>', t)}</tbody></table></div></section>
+    <section class="step"><h3>Invoiced, by customer</h3>${Object.keys(Y.byCust).length ? `<div class="table-wrap"><table class="ytable"><thead><tr><th>Customer</th><th>Invoices</th><th>Before HST</th><th>HST</th></tr></thead>
+      <tbody>${Object.entries(Y.byCust).sort((a, b) => b[1].sub - a[1].sub).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v.n}</td><td>${money(v.sub)}</td><td>${money(v.hst)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="empty">No invoices this year.</p>'}</section>
+    <section class="step"><h3>Kilometres by car</h3>${Object.keys(Y.cars).length ? `<div class="table-wrap"><table class="ytable"><thead><tr><th>Car</th><th>Shifts</th><th>Km on shifts</th><th>Lowest reading</th><th>Highest reading</th></tr></thead>
+      <tbody>${Object.entries(Y.cars).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v.shifts}</td><td>${v.km.toLocaleString('en-CA')}</td><td>${v.first ?? '—'}</td><td>${v.last ?? '—'}</td></tr>`).join('')}</tbody></table></div>
+      <p class="hint">Km come from the start and end mileage drivers type in. For the car logbook, write down each car's odometer on January 1 too.</p>` : '<p class="empty">No shifts this year.</p>'}</section>
+    <section class="step"><h3>Drivers</h3>${Object.keys(Y.drivers).length ? `<div class="table-wrap"><table class="ytable"><thead><tr><th>Driver</th><th>Days worked</th><th>Hours</th><th>Trips</th><th>Fares</th></tr></thead>
+      <tbody>${Object.entries(Y.drivers).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v.days.size}</td><td>${Math.round(v.mins / 6) / 10}</td><td>${v.trips}</td><td>${money(v.fares)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="empty">No shifts this year.</p>'}</section>
+    <p class="hint">Money in counts each ride once: account and tab trips that were invoiced are counted in the invoice, not twice. This is a helper for the accountant, not a tax return.</p>`;
+}
+function yearPrintHtml(y) {
+  const Y = yearData(y), t = Y.tot;
+  const tbl = (head, rows, widths) => `<table style="margin-top:8px"><colgroup>${widths.map(w => `<col style="width:${w}%">`).join('')}</colgroup><thead><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td class="fill">${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  const mrow = (l, m) => [l, money(m.inv), money(m.invHst), money(m.cash), money(m.etransfer), money(m.tabPaid), money(m.inv + m.cash + m.etransfer + m.tabPaid)];
+  return `<div class="sh port"><h1>Lori’s TAXI · ${y} Summary</h1>
+      <div class="meta"><span>Money in: <b>${money(t.income)}</b></span><span>HST added on invoices: <b>${money(t.invHst)}</b></span><span>Printed ${esc(niceDate(todayISO()))}</span></div>
+      <h3 style="margin-top:12px">Month by month</h3>
+      ${tbl(['Month', 'Invoices (before HST)', 'HST on invoices', 'Cash', 'E-transfer', 'Tabs paid', 'Total'], Y.months.map((m, i) => mrow(MONTHS[i], m)).concat([mrow('<b>Year</b>', t)]), [10, 16, 14, 14, 14, 14, 18])}
+      <p style="margin-top:8px;font-size:12px">If cash, e-transfer and tab fares include HST, the HST inside them is about ${money(t.hstInside)} (${Y.rate}/${100 + Y.rate}). Account and tab trips that were invoiced are counted in the invoice only.</p>
+      <h3 style="margin-top:12px">Invoiced, by customer</h3>
+      ${tbl(['Customer', 'Invoices', 'Before HST', 'HST'], Object.entries(Y.byCust).sort((a, b) => b[1].sub - a[1].sub).map(([k, v]) => [esc(k), v.n, money(v.sub), money(v.hst)]), [52, 12, 18, 18])}
+    </div>
+    <div class="sh port"><h1>Lori’s TAXI · ${y} Cars and drivers</h1>
+      <h3 style="margin-top:12px">Kilometres by car</h3>
+      ${tbl(['Car', 'Shifts', 'Km on shifts', 'Lowest reading', 'Highest reading'], Object.entries(Y.cars).map(([k, v]) => [esc(k), v.shifts, v.km.toLocaleString('en-CA'), v.first ?? '', v.last ?? '']), [32, 12, 18, 19, 19])}
+      <h3 style="margin-top:12px">Drivers</h3>
+      ${tbl(['Driver', 'Days worked', 'Hours', 'Trips', 'Fares'], Object.entries(Y.drivers).map(([k, v]) => [esc(k), v.days.size, Math.round(v.mins / 6) / 10, v.trips, money(v.fares)]), [36, 16, 14, 14, 20])}
+    </div>`;
+}
+function yearCsv(y) {
+  const Y = yearData(y), q = v => `"${String(v ?? '').replace(/"/g, '""')}"`, d = c => (c / 100).toFixed(2);
+  const lines = [[`Lori's Taxi ${y} summary`], [], ['Month', 'Invoices before HST', 'HST on invoices', 'Cash fares', 'E-transfer fares', 'Tabs paid', 'Total']];
+  Y.months.forEach((m, i) => lines.push([MONTHS[i], d(m.inv), d(m.invHst), d(m.cash), d(m.etransfer), d(m.tabPaid), d(m.inv + m.cash + m.etransfer + m.tabPaid)]));
+  const t = Y.tot; lines.push(['Year', d(t.inv), d(t.invHst), d(t.cash), d(t.etransfer), d(t.tabPaid), d(t.income)]);
+  lines.push([], ['Invoices'], ['Number', 'Date', 'Customer', 'Before HST', 'HST', 'Total']);
+  data.history.filter(h => String(h.date).startsWith(String(y))).sort((a, b) => (Number(a.number) || 0) - (Number(b.number) || 0)).forEach(h => {
+    const sub = h.sub !== undefined ? h.sub : (h.trips || []).reduce((a, x) => a + cents(x.amount), 0);
+    lines.push([h.number, h.date, h.label, d(sub), d(h.hstAmt !== undefined ? h.hstAmt : Math.max(0, (h.total || 0) - sub)), d(h.total || 0)]);
+  });
+  lines.push([], ['Trips drivers logged'], ['Date', 'Picked up', 'Dropped off', 'From', 'To', 'Driver', 'Car', 'Amount', 'Paid by', 'Customer', 'Invoiced']);
+  live(data.trips).filter(x => x.status === 'done' && String(x.date).startsWith(String(y))).sort((a, b) => (a.pickupAt || 0) - (b.pickupAt || 0)).forEach(x =>
+    lines.push([x.date, hm(x.pickupAt), hm(x.dropoffAt), x.pickup, x.dropoff, x.driver, x.vehicle, d(cents(x.amount)), PAY[x.pay] || '', customerName(x), x.invoiceUid ? 'yes' : '']));
+  lines.push([], ['Kilometres by car'], ['Car', 'Shifts', 'Km on shifts', 'Lowest reading', 'Highest reading']);
+  Object.entries(Y.cars).forEach(([k, v]) => lines.push([k, v.shifts, v.km, v.first ?? '', v.last ?? '']));
+  lines.push([], ['Drivers'], ['Driver', 'Days worked', 'Hours', 'Trips', 'Fares']);
+  Object.entries(Y.drivers).forEach(([k, v]) => lines.push([k, v.days.size, Math.round(v.mins / 6) / 10, v.trips, d(v.fares)]));
+  const blob = new Blob(['﻿' + lines.map(r => r.map(q).join(',')).join('\r\n')], { type: 'text/csv' }), name = `Loris-Taxi-${y}-summary.csv`;
+  if (SHARE_MODE) navigator.share({ files: [new File([blob], name, { type: 'text/csv' })], title: name }).catch(() => {});
+  else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
+  const m = $('yMsg'); if (m) m.textContent = 'Spreadsheet made. It opens in Excel or Google Sheets.';
+}
+
 /* ---------- Schedule: who's working when (Lori and Raymond edit it) ---------- */
 let schedWeek = null, schedEdit = null, pendingDelSched = null;
 function addDays(iso, n) { const p = parts(iso); return isoDate(new Date(p.y, p.m - 1, p.d + n).getTime()); }
@@ -2822,6 +3129,7 @@ function mins(t) { const [h, m] = (t || '0:0').split(':').map(Number); return h 
 function rangeOf(x) { const a = mins(x.start), b = mins(x.end); return [a, b <= a ? b + 1440 : b]; }
 function clashes(x) {
   const [a1, a2] = rangeOf(x), out = [];
+  if (offOn(x.date).some(o => o.userId === x.userId)) out.push(`${userName(x.userId)} has the day off`);
   schedFor(x.date).forEach(y => {
     if (y.id === x.id) return;
     const [b1, b2] = rangeOf(y);
@@ -2838,8 +3146,13 @@ function upcomingHtml() {
   return `<div class="card-soft"><b>Your upcoming shifts</b>${list.length ? `<div class="sched-mini">${list.map(x => `<div><b>${esc(x.date === todayISO() ? 'Today' : niceDate(x.date))}</b><span>${span(x)}${x.vehicle ? ' · ' + esc(x.vehicle) : ''}</span>${x.note ? `<small>${esc(x.note)}</small>` : ''}</div>`).join('')}</div>` : '<span>Nothing scheduled yet.</span>'}</div>`;
 }
 function todaySchedHtml() {
-  const list = schedFor(todayISO());
-  if (!list.length) return '<p class="empty">Nobody is scheduled today. Add shifts under Drive → Schedule.</p>';
+  const list = schedFor(todayISO()), waiting = (data.timeoff || []).filter(o => o.status === 'asked' && !o.void).length;
+  const extra = offOn(todayISO()).map(o => `<p class="off-chip">${esc(userName(o.userId))} is off today</p>`).join('')
+    + (waiting ? `<p class="late">${waiting} time-off request${waiting === 1 ? '' : 's'} waiting. See Schedule.</p>` : '');
+  if (!list.length) return extra + '<p class="empty">Nobody is scheduled today. Add shifts under Drive → Schedule.</p>';
+  return extra + todaySchedList(list);
+}
+function todaySchedList(list) {
   const now = new Date(), nowM = now.getHours() * 60 + now.getMinutes();
   return `<div class="sched-mini">${list.map(x => {
     const real = data.shifts.filter(s => s.driverId === x.userId && !s.void && isoDate(s.startedAt) === x.date).sort((a, b) => b.startedAt - a.startedAt)[0];
@@ -2869,7 +3182,7 @@ function schedFormHtml(x, isNew) {
 function schedHtml() {
   if (!schedWeek) schedWeek = mondayOf(todayISO());
   const days = [...Array(7)].map((_, i) => addDays(schedWeek, i));
-  return `<div class="sched-head"><button type="button" data-sw="-7" aria-label="Previous week">‹</button>
+  return `${offRequestsHtml()}<div class="sched-head"><button type="button" data-sw="-7" aria-label="Previous week">‹</button>
       <b>Week of ${esc(niceDate(schedWeek))}</b><button type="button" data-sw="7" aria-label="Next week">›</button>
       ${schedWeek !== mondayOf(todayISO()) ? '<button type="button" class="link" data-sw="0">This week</button>' : ''}</div>
     <div class="actions"><button type="button" id="schedCopy">Copy last week into this week</button></div>
@@ -2877,6 +3190,7 @@ function schedHtml() {
       const list = schedFor(d), adding = schedEdit && schedEdit.startsWith('new:') && schedEdit.slice(4) === d;
       return `<div class="sched-day${d === todayISO() ? ' today' : ''}">
         <div class="sd-head"><b>${esc(niceDate(d))}${d === todayISO() ? ' · Today' : ''}</b>${adding ? '' : `<button type="button" class="small" data-sadd="${d}">+ Add shift</button>`}</div>
+        ${offOn(d).map(o => `<div class="off-chip">${esc(userName(o.userId))} is off${o.note ? ` <small>${esc(o.note)}</small>` : ''}</div>`).join('')}
         ${list.map(x => schedEdit === x.id ? schedFormHtml(x, false) : `<div class="sched-item">
           <div><b>${span(x)}</b> ${esc(userName(x.userId))}${x.vehicle ? ' · ' + esc(x.vehicle) : ''}${x.note ? `<small>${esc(x.note)}</small>` : ''}
             ${clashes(x).map(c => `<span class="geo-flag">Clash: ${esc(c)}</span>`).join('')}</div>
@@ -2888,6 +3202,11 @@ function schedHtml() {
 $('drivePanel').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b || !driveOpen || driveTab !== 'sched' || isDriver()) return;
   const ds = b.dataset;
+  if (ds.offok || ds.offno) {
+    const o = data.timeoff.find(x => x.id === (ds.offok || ds.offno)); if (!o) return;
+    o.status = ds.offok ? 'ok' : 'no'; o.decidedBy = session ? session.name : 'Lori';
+    save(); syncNow(); renderDrive(); dsay(`${userName(o.userId)}'s time off is ${ds.offok ? 'approved' : 'turned down'}.`); return;
+  }
   if (ds.sw !== undefined) { schedWeek = ds.sw === '0' ? mondayOf(todayISO()) : addDays(schedWeek, Number(ds.sw)); schedEdit = null; renderDrive(); return; }
   if (ds.sadd) { schedEdit = 'new:' + ds.sadd; pendingDelSched = null; renderDrive(); return; }
   if (ds.sedit) { schedEdit = ds.sedit; pendingDelSched = null; renderDrive(); return; }
@@ -2951,6 +3270,7 @@ function liveHtml() {
 function renderHome() {
   const p = $('homePanel'); p.hidden = !homeOpen;
   if (!homeOpen) return;
+  if (homeSub === 'year') { p.innerHTML = yearHtml(); clearInterval(homeTick); return; }
   const today = todayISO();
   const todays = live(data.trips).filter(t => t.status === 'done' && t.date === today);
   const tt = sums(todays);
@@ -2971,6 +3291,7 @@ function renderHome() {
     <div class="home-grid">
       <section class="step home-live"><h3>Live now</h3>${liveHtml()}</section>
       <section class="step"><h3>Today's schedule</h3>${todaySchedHtml()}</section>
+      ${cashWaitingHtml()}
       <section class="step"><h3>Today</h3><p class="big-num">${tt.n} ride${tt.n === 1 ? '' : 's'} · ${money(tt.all)}</p>${sumsHtml(tt)}</section>
     </div>
     <div class="quick">
@@ -2981,6 +3302,7 @@ function renderHome() {
       <button type="button" data-home="past"><b>Past invoices</b><small>${lastInv ? 'Last: #' + esc(lastInv.number) + ', ' + esc(lastInv.label) : 'None yet'}</small></button>
       <button type="button" data-home="sched"><b>Schedule</b><small>${schedFor(todayISO()).length} shift${schedFor(todayISO()).length === 1 ? '' : 's'} today</small></button>
       <button type="button" data-home="sheets"><b>Trip sheets</b><small>Print blank sheets</small></button>
+      <button type="button" data-home="year"><b>Year summary</b><small>For taxes and the accountant</small></button>
     </div>
     <section class="step"><h3>Recent rides</h3>${tripRows(recent, true)}</section>`;
   clearInterval(homeTick);
@@ -2994,6 +3316,12 @@ $('homePanel').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   const h = b.dataset.home;
   if (b.id === 'btnWelcome') { openSettings(); return; }
+  if (b.dataset.cashok) { markCash(b.dataset.cashok); renderHome(); return; }
+  if (h === 'year') { homeSub = 'year'; yearSel = new Date().getFullYear(); renderHome(); scrollTo({ top: 0 }); return; }
+  if (b.id === 'yBack') { homeSub = null; renderHome(); return; }
+  if (b.dataset.year) { yearSel = Number(b.dataset.year); renderHome(); return; }
+  if (b.id === 'yPrint') { printPages(yearPrintHtml(yearSel), false, `Lori's Taxi ${yearSel} summary`, 'yMsg'); return; }
+  if (b.id === 'yCsv') { yearCsv(yearSel); return; }
   if (h === 'new') { $('btnNew').click(); return; }
   if (h === 'money' || h === 'shifts' || h === 'sched') { driveTab = h; driveShiftView = null; driveEdit = null; go('drive'); return; }
   if (h === 'past') { go(document.body.classList.contains('m') ? 'past' : 'invoice'); if (!document.body.classList.contains('m')) $('secPast').scrollIntoView({ block: 'start' }); return; }
@@ -3012,6 +3340,7 @@ function setView(v) {
   if (needLogin() && v !== 'settings') v = 'login';
   else if (isDriver() && v !== 'settings') v = 'drive';
   loginOpen = v === 'login';
+  if (v === 'home' && mView !== 'home') homeSub = null;
   mView = v;
   settingsOpen = v === 'settings'; sheetsOpen = v === 'sheets'; driveOpen = v === 'drive'; homeOpen = v === 'home';
   setPanels();
