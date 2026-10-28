@@ -260,6 +260,25 @@ body.driver .m-tabs [data-view="home"],body.driver .m-tabs [data-view="invoice"]
 body.m .m-tabs{grid-template-columns:repeat(5,1fr)}
 body.m #btnDrive{display:none}
 .combo{display:flex;gap:6px;align-items:stretch}
+/* ---------- sign-in ---------- */
+#loginPanel{max-width:520px;margin:0 auto;width:100%;align-items:stretch;text-align:center}
+#loginPanel h2{font-size:24px;margin:4px 0}
+.who-list{display:flex;flex-direction:column;gap:10px}
+.who-list button{min-height:64px;font-size:22px;border-radius:14px}
+.pin-dots{display:flex;justify-content:center;gap:18px;margin:8px 0}
+.pin-dots span{width:18px;height:18px;border-radius:50%;border:2px solid var(--fg)}
+.pin-dots span.on{background:var(--fg)}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:320px;margin:0 auto;width:100%}
+.pin-pad button{min-height:68px;font-size:28px;border-radius:50%;aspect-ratio:1/1;max-width:84px;justify-self:center;width:100%}
+body.locked .toplinks>button:not(.sync-chip),body.locked .m-tabs,body.locked .m-bar,body.locked #mainApp{display:none!important}
+.people-list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.person-row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid var(--line)}
+.person-row:last-child{border-bottom:0}
+.person-row small{display:block;color:var(--muted);font-size:14px}
+.person-btns,.pin-set{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.pin-set input{width:100px}
+.add-person{display:flex;flex-direction:column;gap:10px;border:1px dashed var(--line);border-radius:12px;padding:12px}
+#btnSignOut{border-color:var(--accent);color:var(--accent)}
 /* ---------- Home ---------- */
 #homePanel{display:flex;flex-direction:column;gap:16px}
 #homePanel[hidden]{display:none!important}
@@ -871,6 +890,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       <button class="small nav-btn" id="btnDrive" type="button">Trips &amp; shifts</button>
       <button class="small" id="btnSheets" type="button">Trip sheets</button>
       <button class="small" id="btnSettings" type="button">Customers &amp; settings</button>
+      <button class="small" id="btnSignOut" type="button" hidden>Sign out</button>
       <button class="sync-chip" id="syncChip" type="button"></button>
     </div>
   </header>
@@ -879,6 +899,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   <section class="step no-print" id="sheetsPanel" hidden></section>
   <section class="step no-print" id="drivePanel" hidden></section>
   <section class="no-print" id="homePanel" hidden></section>
+  <section class="step no-print" id="loginPanel" hidden></section>
 
   <div class="app" id="mainApp">
     <div class="steps no-print">
@@ -999,6 +1020,7 @@ function ltMerge(a, b) {
   out.customers = ltById([a.customers, b.customers], gone);
   out.shifts = ltById([a.shifts, b.shifts], gone);
   out.trips = ltById([a.trips, b.trips], gone);
+  out.users = ltById([a.users, b.users], gone);
   var hm = {};
   [a.history || [], b.history || []].forEach(function (list) {
     list.forEach(function (h) {
@@ -1044,7 +1066,7 @@ const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 
 const NOBODY = { id: '', label: '', cols: 'trip', hst: false, email: '', billTo: '', places: [], clients: [] };
 function blankData() {
-  return { v: 5, business: { ...clone(DEFAULTS.business), _t: 1 }, customers: clone(DEFAULTS.customers).map(c => ({ ...c, _t: 1 })), history: [], shifts: [], trips: [], gone: {}, counter: 0 };
+  return { v: 5, business: { ...clone(DEFAULTS.business), _t: 1 }, customers: clone(DEFAULTS.customers).map(c => ({ ...c, _t: 1 })), history: [], shifts: [], trips: [], users: [], gone: {}, counter: 0 };
 }
 /* bring older saved data or older backups up to date */
 function upgrade(d) {
@@ -1056,6 +1078,7 @@ function upgrade(d) {
     history: (d.history || []).map(h => ({ ...h, uid: h.uid || ('n' + h.number), _t: h._t || 1 })),
     shifts: (d.shifts || []).map(x => ({ ...x, _t: x._t || 1 })),
     trips: (d.trips || []).map(x => ({ ...x, _t: x._t || 1 })),
+    users: (d.users || []).map(x => ({ ...x, _t: x._t || 1 })),
     gone: d.gone || {},
     counter: d.counter || 0
   };
@@ -1070,7 +1093,7 @@ let data = load();
 /* Remember how everything looked at the last save, so a save can mark only what changed. */
 let snap = null;
 const strip = o => { const { _t, ...r } = o; return JSON.stringify(r); };
-const KEYED = ['customers', 'shifts', 'trips'];
+const KEYED = ['customers', 'shifts', 'trips', 'users'];
 function takeSnap() {
   snap = { biz: strip(data.business), k: {}, hist: {} };
   KEYED.forEach(k => { snap.k[k] = {}; data[k].forEach(x => { snap.k[k][x.id] = strip(x); }); });
@@ -1673,7 +1696,8 @@ function renderSettings() {
   p.hidden = !settingsOpen; setPanels();
   if (!settingsOpen) return;
   if (isDriver()) {
-    p.innerHTML = `<div class="settings">${syncSectionHtml()}<p class="hint">This phone is set up for a driver. It only logs shifts and trips.</p></div>`;
+    p.innerHTML = `<div class="settings">${session ? `<h2>Signed in as ${esc(session.name)}</h2><div class="actions"><button type="button" class="primary" id="btnSignOut2">Sign out</button></div>` : ''}
+      ${syncSectionHtml()}<p class="hint">This is a shared phone. Each person signs in with their own PIN and only sees their own shifts.</p></div>`;
     return;
   }
   const b = data.business;
@@ -1689,6 +1713,7 @@ function renderSettings() {
       <label for="sVeh">Vehicles (one per line)<textarea id="sVeh" data-b="vehiclesText" rows="3">${esc((b.vehicles || []).join('\n'))}</textarea></label>
     </div>
     <label for="sAddr">Address<textarea id="sAddr" data-b="address">${esc(b.address)}</textarea></label>
+    ${peopleHtml()}
     <h2>Customers</h2>
     ${data.customers.map((c, i) => `
       <div class="cust-edit" data-ci="${i}">
@@ -1845,7 +1870,8 @@ function renderSheets() {
 }
 function setPanels() {
   $('homePanel').hidden = !homeOpen;
-  $('mainApp').hidden = settingsOpen || sheetsOpen || driveOpen || homeOpen;
+  $('loginPanel').hidden = !loginOpen;
+  $('mainApp').hidden = settingsOpen || sheetsOpen || driveOpen || homeOpen || loginOpen;
   $('settingsPanel').hidden = !settingsOpen; $('sheetsPanel').hidden = !sheetsOpen; $('drivePanel').hidden = !driveOpen;
   $('btnSettings').textContent = settingsOpen && isDriver() ? 'Back' : 'Customers & settings';
   const curBtn = { home: 'btnHome', invoice: 'btnInvoice', past: 'btnInvoice', drive: 'btnDrive', sheets: 'btnSheets', settings: 'btnSettings' }[mView];
@@ -1908,7 +1934,7 @@ async function callSync(action, extra, useCfg) {
   const c = useCfg || cfg;
   const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 25000);
   try {
-    const res = await fetch(c.u, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action, key: c.k, device: deviceId(), data: { ...data, counter: 0 }, ...(extra || {}) }), signal: ctl.signal, redirect: 'follow' });
+    const res = await fetch(c.u, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action, key: c.k, device: deviceId(), token: (c.r === 'driver' && session) ? session.token : undefined, data: { ...data, counter: 0 }, ...(extra || {}) }), signal: ctl.signal, redirect: 'follow' });
     const j = await res.json();
     if (!j.ok) throw new Error(j.error || 'failed');
     return j;
@@ -1925,6 +1951,7 @@ function adopt(server) {
 function errText(e) {
   const m = String((e && e.message) || e);
   if (m === 'wrong_passcode') return 'the passcode is wrong';
+  if (m === 'signed_out') return 'you need to sign in again';
   if (!navigator.onLine) return 'no internet right now';
   return "couldn't reach the shared file";
 }
@@ -1942,11 +1969,15 @@ function afterAdopt() {
   else if (!sheetsOpen) { renderWho(); renderHistory(); renderEmailBox(); renderPaper(); renderLoggedBanner(); }
 }
 async function syncNow() {
-  if (!syncOn()) return false;
+  if (!syncOn() || needLogin()) return false;
   if (syncState.busy) { syncState.again = true; return syncState.busy; }
   syncState.busy = (async () => {
     try { const j = await callSync('sync'); noteRole(j); adopt(j.data); afterAdopt(); return true; }
-    catch (e) { syncState.err = errText(e); return false; }
+    catch (e) {
+      syncState.err = errText(e);
+      if (String(e && e.message) === 'signed_out' && sharedDevice()) setTimeout(() => signOut('You were signed out. Please sign in again.', true), 0);
+      return false;
+    }
     finally {
       syncState.busy = null; renderSyncChip();
       if (syncState.again) { syncState.again = false; setTimeout(syncNow, 400); }
@@ -1956,7 +1987,7 @@ async function syncNow() {
   return syncState.busy;
 }
 let syncTimer = null;
-function syncSoon() { if (!syncOn()) return; clearTimeout(syncTimer); syncTimer = setTimeout(syncNow, 2500); }
+function syncSoon() { if (!syncOn() || needLogin()) return; clearTimeout(syncTimer); syncTimer = setTimeout(syncNow, 2500); }
 function ago(t) {
   if (!t) return 'never';
   const m = Math.round((Date.now() - t) / 60000);
@@ -2019,6 +2050,15 @@ $('settingsPanel').addEventListener('click', async e => {
     if (!c) { bad('Paste the setup code first (it starts with LT1-).'); return; }
     if (!/^https:\/\//.test(c.u) && !/^http:\/\/localhost[:/]/.test(c.u)) { bad('The web address should start with https://'); return; }
     msg('Connecting…');
+    if (c.r === 'driver') {
+      try {
+        const w = await callSync('who', null, c);
+        cfg = c; try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (err) {}
+        savePeople(w.people || []); session = null; saveSession();
+        data = blankData(); takeSnap(); store();
+        applyRole(); go('login'); renderSyncChip(); return;
+      } catch (err) { bad('Could not connect: ' + errText(err) + '.'); return; }
+    }
     try {
       const j = await callSync('sync', null, c);
       cfg = c; noteRole(j);
@@ -2039,11 +2079,14 @@ $('settingsPanel').addEventListener('click', async e => {
     try { await navigator.clipboard.writeText(out.textContent); msg('Driver code copied. On the driver\'s phone, open the app, go to Settings and paste it.'); }
     catch (err) { const r = document.createRange(); r.selectNodeContents(out); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); msg('Copy the driver code shown above.'); }
   }
+  if (id === 'btnSignOut2') { $('btnSignOut').click(); return; }
   if (id === 'btnDisconnect') {
     if (!pendingDisconnect) { pendingDisconnect = true; renderSettings(); return; }
-    const wasDriver = isDriver();
-    pendingDisconnect = false; cfg = null; try { localStorage.removeItem(CFG_KEY); } catch (err) {}
-    if (wasDriver) { data = blankData(); takeSnap(); store(); applyRole(); }
+    const wasShared = sharedDevice();
+    pendingDisconnect = false;
+    if (wasShared && session) await signOut('', true);
+    cfg = null; try { localStorage.removeItem(CFG_KEY); } catch (err) {}
+    if (wasShared) { data = blankData(); takeSnap(); store(); applyRole(); go('home'); return; }
     renderSettings(); renderSyncChip();
   }
 });
@@ -2064,26 +2107,174 @@ function saveDev() { try { localStorage.setItem(DEV_KEY, JSON.stringify(dev)); }
 function deviceId() { if (!dev.deviceId) { dev.deviceId = newId('d'); saveDev(); } return dev.deviceId; }
 let driveOpen = false, driveTab = 'shift', driveEdit = null, driveShiftView = null;
 let pendingEnd = false, pendingVoid = null, pendingPaid = null;
-function isDriver() { return !!(cfg && cfg.r === 'driver'); }
+/* A shared phone is one connected with the driver code: whoever uses it signs in with their name and PIN. */
+const SESSION_KEY = 'loris-taxi-session', PEOPLE_KEY = 'loris-taxi-people';
+let session = null;
+try { session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch (e) {}
+function saveSession() { try { if (session) localStorage.setItem(SESSION_KEY, JSON.stringify(session)); else localStorage.removeItem(SESSION_KEY); } catch (e) {} }
+function sharedDevice() { return !!(cfg && cfg.r === 'driver'); }
+function needLogin() { return sharedDevice() && !session; }
+function isDriver() { return sharedDevice() && !(session && session.role === 'owner'); }
 function noteRole(j) {
   if (!cfg || !j) return;
-  if (j.role) cfg.r = j.role;
+  if (sharedDevice()) {
+    if (j.me && session && (session.role !== j.me.role || session.name !== j.me.name)) { session.role = j.me.role; session.name = j.me.name; saveSession(); }
+  }
   if (j.driverKey) cfg.dk = j.driverKey;
   try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (e) {}
   applyRole();
 }
 function applyRole() {
-  document.body.classList.toggle('driver', isDriver());
+  document.body.classList.toggle('driver', isDriver() && !needLogin());
+  document.body.classList.toggle('locked', needLogin());
+  const so = $('btnSignOut');
+  so.hidden = !(sharedDevice() && session);
+  if (session) so.textContent = 'Sign out ' + session.name;
+  if (needLogin()) { if (!loginOpen && !settingsOpen) go('login'); return; }
   if (isDriver() && !settingsOpen && !driveOpen) go('drive');
 }
+function people() { try { return JSON.parse(localStorage.getItem(PEOPLE_KEY) || '[]'); } catch (e) { return []; } }
+function savePeople(list) { try { localStorage.setItem(PEOPLE_KEY, JSON.stringify(list)); } catch (e) {} }
+async function signOut(message, skipSync) {
+  if (session && !skipSync) { try { await syncNow(); } catch (e) {} }
+  const tok = session && session.token;
+  if (tok && cfg) { try { await callSync('logout', null, cfg); } catch (e) {} }
+  clearTimeout(syncTimer); syncState.again = false;
+  session = null; saveSession();
+  data = blankData(); takeSnap(); store();
+  driveEdit = null; driveShiftView = null; pendingEnd = false;
+  loginPick = null; loginPin = '';
+  applyRole(); go('login');
+  if (message) loginSay(message);
+}
+$('btnSignOut').addEventListener('click', () => {
+  const r = rideNow();
+  if (r && !confirmSignOut) { confirmSignOut = true; setStatus('You are on a ride. Press Sign out again to sign out anyway (the ride stays open).', true); return; }
+  confirmSignOut = false; signOut('Signed out. Hand the phone over.');
+});
+let confirmSignOut = false;
+
+/* ---------- People who sign in (set up on Lori's own devices) ---------- */
+let personEdit = null, pendingRemovePerson = null;
+async function pinHash(salt, pin) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(salt + ':' + pin));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+function newSalt() { const a = new Uint8Array(12); crypto.getRandomValues(a); return [...a].map(b => b.toString(16).padStart(2, '0')).join(''); }
+function peopleHtml() {
+  const list = (data.users || []).filter(u => !u.removed);
+  return `<h2 id="peopleHead">People who sign in</h2>
+    <p class="hint">On a shared phone (like the taxi phone), each person taps their name and types their PIN. Drivers only ever see their own shifts and trips. Add Lori as the owner so she can sign in on the taxi phone too.</p>
+    ${list.length ? `<div class="people-list">${list.map(u => `<div class="person-row">
+      <div><b>${esc(u.name)}</b><small>${u.role === 'owner' ? 'Owner: sees everything' : 'Driver: only their own shifts'}</small></div>
+      ${personEdit === u.id ? `<span class="pin-set"><input type="password" inputmode="numeric" maxlength="4" id="pinNew" placeholder="New PIN" aria-label="New 4-digit PIN" autocomplete="off">
+          <input type="password" inputmode="numeric" maxlength="4" id="pinNew2" placeholder="Again" aria-label="New PIN again" autocomplete="off">
+          <button type="button" class="primary" data-pinsave="${esc(u.id)}">Save PIN</button></span>`
+        : `<span class="person-btns"><button type="button" class="small" data-pinedit="${esc(u.id)}">Change PIN</button>
+          <button type="button" class="small" data-premove="${esc(u.id)}">${pendingRemovePerson === u.id ? 'Press again to remove' : 'Remove'}</button></span>`}
+    </div>`).join('')}</div>` : '<p class="empty">Nobody yet.</p>'}
+    <div class="add-person"><b>Add a person</b>
+      <div class="fields">
+        <label for="npName">Name<input id="npName" autocomplete="off"></label>
+        <label for="npRole">They are<select id="npRole"><option value="driver">A driver</option><option value="owner">The owner (sees everything)</option></select></label>
+        <label for="npPin">4-digit PIN<input id="npPin" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></label>
+        <label for="npPin2">PIN again<input id="npPin2" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></label>
+      </div>
+      <button type="button" class="primary" id="btnAddPerson">Add person</button></div>
+    <div class="status" id="peopleMsg" role="status" aria-live="polite"></div>`;
+}
+$('settingsPanel').addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const say = (t, bad) => { const m = $('peopleMsg'); if (m) { m.textContent = t; m.classList.toggle('bad', !!bad); } };
+  const okPin = x => /^\d{4}$/.test(x);
+  if (b.id === 'btnAddPerson') {
+    const name = $('npName').value.trim(), role = $('npRole').value, p1 = $('npPin').value, p2 = $('npPin2').value;
+    if (!name) return say('Type their name.', true);
+    if (!okPin(p1)) return say('The PIN has to be 4 numbers.', true);
+    if (p1 !== p2) return say("The two PINs don't match.", true);
+    if (data.users.some(u => !u.removed && u.name.toLowerCase() === name.toLowerCase())) return say('Someone with that name is already on the list.', true);
+    const salt = newSalt();
+    data.users.push({ id: newId('u'), name, role, salt, pinHash: await pinHash(salt, p1) });
+    save(); syncNow(); renderSettings(); say(`${name} can now sign in on a shared phone.`); return;
+  }
+  if (b.dataset.pinedit) { personEdit = b.dataset.pinedit; renderSettings(); const n = $('pinNew'); if (n) n.focus(); return; }
+  if (b.dataset.pinsave) {
+    const u = data.users.find(x => x.id === b.dataset.pinsave), p1 = $('pinNew').value, p2 = $('pinNew2').value;
+    if (!okPin(p1)) return say('The PIN has to be 4 numbers.', true);
+    if (p1 !== p2) return say("The two PINs don't match.", true);
+    u.salt = newSalt(); u.pinHash = await pinHash(u.salt, p1); personEdit = null;
+    save(); syncNow(); renderSettings(); say(`${u.name}'s PIN is changed.`); return;
+  }
+  if (b.dataset.premove) {
+    if (pendingRemovePerson !== b.dataset.premove) { pendingRemovePerson = b.dataset.premove; renderSettings(); return; }
+    const u = data.users.find(x => x.id === b.dataset.premove); u.removed = true; u.pinHash = ''; pendingRemovePerson = null;
+    save(); syncNow(); renderSettings(); say(`${u.name} can no longer sign in.`);
+  }
+});
+
+/* ---------- "Who's using the phone?" ---------- */
+let loginOpen = false, loginPick = null, loginPin = '', loginBusy = false;
+function loginSay(t, bad) { const m = $('loginMsg'); if (m) { m.textContent = t; m.classList.toggle('bad', !!bad); } }
+function renderLogin() {
+  const p = $('loginPanel'); p.hidden = !loginOpen; if (!loginOpen) return;
+  const list = people();
+  const who = list.find(x => x.id === loginPick);
+  p.innerHTML = who ? `
+    <button type="button" class="link back" id="loginBack">‹ Not ${esc(who.name)}?</button>
+    <h2>Hi ${esc(who.name)}. Enter your PIN</h2>
+    <div class="pin-dots" aria-label="${loginPin.length} of 4 digits">${[0, 1, 2, 3].map(i => `<span class="${i < loginPin.length ? 'on' : ''}"></span>`).join('')}</div>
+    <div class="pin-pad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button type="button" data-pin="${n}">${n}</button>`).join('')}
+      <span></span><button type="button" data-pin="0">0</button><button type="button" data-pin="del" aria-label="Delete">⌫</button></div>
+    <div class="status" id="loginMsg" role="status" aria-live="polite"></div>` : `
+    <h2>Who's using the phone?</h2>
+    ${list.length ? `<div class="who-list">${list.map(x => `<button type="button" data-person="${esc(x.id)}">${esc(x.name)}</button>`).join('')}</div>`
+      : `<p class="hint">Nobody is set up yet. On Lori's phone or computer, go to Customers &amp; settings → People who sign in, and add each driver with a PIN.</p>`}
+    <div class="actions"><button type="button" id="loginRefresh">Refresh the list</button><button type="button" class="link" id="loginSettings">Phone settings</button></div>
+    <div class="status" id="loginMsg" role="status" aria-live="polite"></div>`;
+}
+$('loginPanel').addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b || loginBusy) return;
+  if (b.dataset.person) { loginPick = b.dataset.person; loginPin = ''; renderLogin(); return; }
+  if (b.id === 'loginBack') { loginPick = null; loginPin = ''; renderLogin(); return; }
+  if (b.id === 'loginSettings') { go('settings'); return; }
+  if (b.id === 'loginRefresh') {
+    loginSay('Checking…');
+    try { const w = await callSync('who', null, cfg); savePeople(w.people || []); renderLogin(); loginSay('List updated.'); }
+    catch (err) { loginSay('Could not update the list: ' + errText(err) + '.', true); }
+    return;
+  }
+  if (b.dataset.pin) {
+    if (b.dataset.pin === 'del') loginPin = loginPin.slice(0, -1);
+    else if (loginPin.length < 4) loginPin += b.dataset.pin;
+    renderLogin();
+    if (loginPin.length === 4) {
+      loginBusy = true; loginSay('Signing in…');
+      try {
+        const j = await callSync('login', { user: loginPick, pin: loginPin }, cfg);
+        session = { token: j.token, id: j.me.id, name: j.me.name, role: j.me.role }; saveSession();
+        data = blankData(); takeSnap();
+        adopt(j.data); noteRole(j);
+        loginPick = null; loginPin = '';
+        go(homeView()); setStatus(`Signed in as ${session.name}.`);
+      } catch (err) {
+        const m = String(err && err.message);
+        loginPin = ''; renderLogin();
+        loginSay(m === 'wrong_pin' ? 'That PIN is not right. Try again.' : m === 'locked' ? 'Too many wrong tries. Wait 10 minutes, then try again.' : 'Could not sign in: ' + errText(err) + '.', true);
+      } finally { loginBusy = false; }
+    }
+  }
+});
 const PAY = { cash: 'Cash', etransfer: 'E-transfer', tab: 'Tab', account: 'Account' };
 const live = list => (list || []).filter(x => !x.void && x.status !== 'draft');
 const kindOf = c => (c && c.kind) || 'account';
 const tabCustomers = () => data.customers.filter(c => kindOf(c).startsWith('tab'));
 const acctCustomers = () => data.customers.filter(c => !kindOf(c).startsWith('tab'));
-function myShift() { return data.shifts.find(s => s.id === dev.shiftId && !s.endedAt) || null; }
+function myShift() {
+  if (session) return data.shifts.find(s => !s.endedAt && !s.void && s.driverId === session.id) || null;
+  return data.shifts.find(s => s.id === dev.shiftId && !s.endedAt) || null;
+}
 function shiftTrips(id) { return live(data.trips).filter(t => t.shiftId === id).sort((a, b) => (a.pickupAt || 0) - (b.pickupAt || 0)); }
-function rideNow() { return data.trips.find(t => t.id === dev.tripId && t.status === 'riding' && !t.void) || null; }
+function rideNow() { const s = myShift(); return s ? data.trips.find(t => t.shiftId === s.id && t.status === 'riding' && !t.void) || null : null; }
 function findTrip(id) { return data.trips.find(t => t.id === id) || null; }
 const hm = ms => ms ? new Date(ms).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' }).replace(/\./g, '') : '';
 function dur(a, b) {
@@ -2182,7 +2373,7 @@ function tripFormHtml(t, mode) {
   </div>`;
 }
 function startHtml() {
-  const last = dev.lastShiftId && data.shifts.find(s => s.id === dev.lastShiftId);
+  const last = session ? data.shifts.filter(s => s.driverId === session.id && s.endedAt).sort((a, b) => b.endedAt - a.endedAt)[0] : (dev.lastShiftId && data.shifts.find(s => s.id === dev.lastShiftId));
   const lt = last ? sums(shiftTrips(last.id)) : null;
   return `${last ? `<div class="card-soft"><b>Last shift: ${esc(niceDate(isoDate(last.startedAt)))}, ${lt.n} trips, ${money(lt.all)}</b>
       ${sumsHtml(lt)}<div class="actions"><button type="button" data-dprint="${esc(last.id)}">Print trip record</button></div></div>` : ''}
@@ -2190,7 +2381,8 @@ function startHtml() {
     <datalist id="dlDrivers">${pastValues('driver').map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>
     <datalist id="dlVehicles">${pastValues('vehicle').map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>
     <div class="fields">
-      <label for="dDriver">Driver<input id="dDriver" list="dlDrivers" value="${esc(dev.driver || '')}" placeholder="Your name" autocomplete="off"></label>
+      ${session ? `<label for="dDriver">Driver<input id="dDriver" value="${esc(session.name)}" readonly></label>`
+        : `<label for="dDriver">Driver<input id="dDriver" list="dlDrivers" value="${esc(dev.driver || '')}" placeholder="Your name" autocomplete="off"></label>`}
       <div class="wide veh-pick"><span>Vehicle</span><div class="veh-btns">
         ${vehicles().map(v => `<button type="button" data-dveh="${esc(v)}" aria-pressed="${v === dev.vehicle}">${esc(v)}</button>`).join('')}
         <button type="button" data-dveh="__other" aria-pressed="${!!dev.vehicle && !vehicles().includes(dev.vehicle)}">Other</button></div>
@@ -2386,7 +2578,7 @@ function startTimer() {
   draw(); rideTick = setInterval(draw, 1000);
 }
 function dsay(t, bad) { const m = $('driveMsg'); if (m) { m.textContent = t; m.classList.toggle('bad', !!bad); } setStatus(t, bad); }
-function activeTrip() { const id = driveEdit || dev.tripId; return id ? findTrip(id) : null; }
+function activeTrip() { return driveEdit ? findTrip(driveEdit) : rideNow(); }
 let dSaveTimer = null;
 function saveSoonDrive() { clearTimeout(dSaveTimer); dSaveTimer = setTimeout(() => { stamp(); store(); syncSoon(); }, 500); }
 function tripProblem(t) {
@@ -2452,7 +2644,7 @@ $('drivePanel').addEventListener('click', async e => {
     const driver = $('dDriver').value.trim(), vehicle = (other && !other.hidden ? other.value : $('dVehicle').value).trim(), startKm = $('dStartKm').value.trim();
     if (!driver) { dsay('Type your name first.', true); $('dDriver').focus(); return; }
     if (!vehicle) { dsay('Pick the vehicle first.', true); return; }
-    const s = { id: newId('s'), device: deviceId(), driver, vehicle, startKm, startedAt: Date.now(), endedAt: null };
+    const s = { id: newId('s'), device: deviceId(), driverId: session ? session.id : 'owner', driver: session ? session.name : driver, vehicle, startKm, startedAt: Date.now(), endedAt: null };
     data.shifts.push(s); dev.shiftId = s.id; dev.driver = driver; dev.vehicle = vehicle; saveDev();
     save(); syncNow(); renderDrive(); dsay('Shift started. Have a good one.'); return;
   }
@@ -2668,15 +2860,17 @@ $('homePanel').addEventListener('click', e => {
 const PHONE = matchMedia('(max-width: 700px)');
 let mView = 'home', homeOpen = false;
 function openSettings() { if (!settingsOpen) go('settings'); }
-const VIEW_TITLES = { home: 'Home', invoice: 'Invoice', past: 'Past invoices', drive: 'Drive', sheets: 'Trip sheets', settings: 'Settings' };
+const VIEW_TITLES = { login: 'Sign in', home: 'Home', invoice: 'Invoice', past: 'Past invoices', drive: 'Drive', sheets: 'Trip sheets', settings: 'Settings' };
 function homeView() { return isDriver() ? 'drive' : 'home'; }
 function go(v) { setView(v); }
 function setView(v) {
-  if (isDriver() && v !== 'settings') v = 'drive';
+  if (needLogin() && v !== 'settings') v = 'login';
+  else if (isDriver() && v !== 'settings') v = 'drive';
+  loginOpen = v === 'login';
   mView = v;
   settingsOpen = v === 'settings'; sheetsOpen = v === 'sheets'; driveOpen = v === 'drive'; homeOpen = v === 'home';
   setPanels();
-  if (settingsOpen) renderSettings(); else if (sheetsOpen) renderSheets(); else if (driveOpen) renderDrive(); else if (homeOpen) renderHome(); else renderAll();
+  if (loginOpen) renderLogin(); else if (settingsOpen) renderSettings(); else if (sheetsOpen) renderSheets(); else if (driveOpen) renderDrive(); else if (homeOpen) renderHome(); else renderAll();
   if (v === 'past' && !document.body.classList.contains('m')) setTimeout(() => $('secPast').scrollIntoView({ block: 'start', behavior: 'smooth' }), 50);
   if (!driveOpen) stopTimer();
   if (!homeOpen) clearInterval(homeTick);
