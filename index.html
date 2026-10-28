@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Lori's Taxi Invoices</title>
+<title>Lori's Taxi</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -107,7 +107,7 @@ body.m header.top h1{font-size:26px;display:flex;flex-direction:column;gap:0;lin
 body.m header.top h1>span:first-child{font-size:14px;letter-spacing:.06em;text-transform:uppercase}
 body.m header.top h1 #mViewTitle{color:var(--fg)}
 body.m .toplinks{flex-wrap:nowrap;gap:6px;align-items:center}
-body.m #btnSheets,body.m #btnSettings{display:none}
+body.m #btnSheets,body.m #btnSettings,body.m #btnHome,body.m #btnInvoice{display:none}
 body.m #btnNew{font-size:14px;min-height:36px;padding:6px 12px;border-radius:999px}
 body.m #btnNew::before{content:"+ "}
 body.m .sync-chip{font-size:12px;min-height:32px;padding:4px 10px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -254,12 +254,40 @@ body.m .sheet-list{grid-template-columns:1fr}
 .sh .fillv{display:inline-block;border-bottom:1px solid #000;font-family:Arial,sans-serif;font-weight:700;padding:0 4px}
 .sh h1 small{font-size:14px}
 /* driver phones only log trips */
-body.driver #btnNew,body.driver #btnSheets,body.driver #btnDrive,body.driver #mainApp,body.driver .m-bar{display:none!important}
+body.driver #btnNew,body.driver #btnSheets,body.driver #btnDrive,body.driver #btnHome,body.driver #btnInvoice,body.driver #homePanel,body.driver #mainApp,body.driver .m-bar{display:none!important}
 body.driver .m-tabs{grid-template-columns:1fr 1fr!important}
-body.driver .m-tabs [data-view="invoice"],body.driver .m-tabs [data-view="past"],body.driver .m-tabs [data-view="sheets"]{display:none}
+body.driver .m-tabs [data-view="home"],body.driver .m-tabs [data-view="invoice"],body.driver .m-tabs [data-view="past"],body.driver .m-tabs [data-view="sheets"]{display:none}
 body.m .m-tabs{grid-template-columns:repeat(5,1fr)}
 body.m #btnDrive{display:none}
 .combo{display:flex;gap:6px;align-items:stretch}
+/* ---------- Home ---------- */
+#homePanel{display:flex;flex-direction:column;gap:16px}
+#homePanel[hidden]{display:none!important}
+.home-hero{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.home-hero small{color:var(--muted);font-weight:700;font-size:15px}
+.home-hero h2{margin:2px 0 0;font:700 30px/1.1 var(--ui);text-wrap:balance}
+.home-sync{font-size:14px;color:var(--ok);font-weight:700}
+.home-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:860px){.home-grid{grid-template-columns:minmax(0,1fr)}}
+.step h3{margin:0;font-size:19px}
+.big-num{margin:0;font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
+.live-card{border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.live-card.riding{border:2px solid var(--ok)}
+.lc-top{display:flex;justify-content:space-between;gap:8px}
+.lc-top b{font-size:19px}
+.lc-top span{color:var(--muted);font-weight:700}
+.lc-ride{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.lc-timer{font-size:30px;font-variant-numeric:tabular-nums}
+.avail{font-weight:700;color:var(--muted)}
+.lc-where{font-size:16px}
+.lc-sum{font-size:14px;color:var(--muted)}
+.quick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:700px){.quick{grid-template-columns:1fr 1fr}}
+.quick button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:14px;min-height:76px;border-radius:12px;background:var(--panel)}
+.quick button b{font-size:18px}
+.quick button small{font:400 14px var(--ui);color:var(--muted)}
+.nav-btn[aria-current="page"],#btnSettings[aria-current="page"],#btnSheets[aria-current="page"]{border-color:var(--accent);color:var(--accent)}
+body.m .home-hero h2{font-size:24px}
 .veh-pick>span{display:block;font-weight:700;color:var(--muted);font-size:15px;margin-bottom:4px}
 .veh-btns{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:6px}
 .veh-btns button{min-height:52px}
@@ -835,10 +863,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     <b>This is only a preview.</b> Printing and email don't work here. Save this file to the computer, then double-click it so it opens in Chrome or Edge.
   </div>
   <header class="top no-print">
-    <h1><span>Lori's Taxi</span> <span class="d-only">Invoices</span><span class="m-only" id="mViewTitle">Invoice</span></h1>
+    <h1><span>Lori's Taxi</span><span class="m-only" id="mViewTitle">Home</span></h1>
     <div class="toplinks">
-      <button class="small" id="btnNew" type="button">Start a new invoice</button>
-      <button class="small" id="btnDrive" type="button">Trips &amp; shifts</button>
+      <button class="small nav-btn" id="btnHome" type="button">Home</button>
+      <button class="small nav-btn" id="btnInvoice" type="button">Invoices</button>
+      <button class="small" id="btnNew" type="button">New invoice</button>
+      <button class="small nav-btn" id="btnDrive" type="button">Trips &amp; shifts</button>
       <button class="small" id="btnSheets" type="button">Trip sheets</button>
       <button class="small" id="btnSettings" type="button">Customers &amp; settings</button>
       <button class="sync-chip" id="syncChip" type="button"></button>
@@ -848,6 +878,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   <section class="step no-print" id="settingsPanel" hidden></section>
   <section class="step no-print" id="sheetsPanel" hidden></section>
   <section class="step no-print" id="drivePanel" hidden></section>
+  <section class="no-print" id="homePanel" hidden></section>
 
   <div class="app" id="mainApp">
     <div class="steps no-print">
@@ -916,7 +947,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   <button type="button" id="mPreview">Preview</button>
   <button type="button" class="primary" id="mFinish">Finish</button>
 </div>
-<nav class="m-tabs no-print" id="mTabs" aria-label="Sections"><button type="button" data-view="invoice"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M10 12h5M10 16h5"/></svg><span>Invoice</span></button><button type="button" data-view="drive"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16V11l2-5h10l2 5v5"/><path d="M3 16h18v3H3z"/><circle cx="7.5" cy="16.5" r="1.5"/><circle cx="16.5" cy="16.5" r="1.5"/><path d="M5 11h14"/></svg><span>Drive</span></button><button type="button" data-view="past"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>Past</span></button><button type="button" data-view="sheets"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M4 14h16M10 4v16"/></svg><span>Sheets</span></button><button type="button" data-view="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg><span>Settings</span></button></nav>
+<nav class="m-tabs no-print" id="mTabs" aria-label="Sections"><button type="button" data-view="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/><path d="M10 20v-6h4v6"/></svg><span>Home</span></button><button type="button" data-view="invoice"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M10 12h5M10 16h5"/></svg><span>Invoice</span></button><button type="button" data-view="drive"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16V11l2-5h10l2 5v5"/><path d="M3 16h18v3H3z"/><circle cx="7.5" cy="16.5" r="1.5"/><circle cx="16.5" cy="16.5" r="1.5"/><path d="M5 11h14"/></svg><span>Drive</span></button><button type="button" data-view="sheets"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M4 14h16M10 4v16"/></svg><span>Sheets</span></button><button type="button" data-view="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg><span>Settings</span></button></nav>
 <div class="m-sheet no-print" id="mSheet" hidden>
   <div class="m-sheet-card" role="dialog" aria-modal="true">
     <div id="mActions"></div>
@@ -1630,11 +1661,13 @@ $('history').addEventListener('click', e => {
   renderAll(); $('mailPick').hidden = true; $('sharePanel').hidden = true; setStatus(`Invoice #${h.number} is open. Press Print, Save PDF or Email it.`);
   if (document.body.classList.contains('m')) { pickOpen = false; setView('invoice'); } else $('btnPrint').scrollIntoView({ block: 'center', behavior: 'smooth' });
 });
-$('btnNew').addEventListener('click', () => { $('mailPick').hidden = true; $('sharePanel').hidden = true; newInvoice(cur.customerId); renderAll(); setStatus(`New invoice #${cur.number} ready.`); });
+$('btnNew').addEventListener('click', () => { $('mailPick').hidden = true; $('sharePanel').hidden = true; newInvoice(cur.customerId); go('invoice'); setStatus(`New invoice #${cur.number} ready.`); });
 
 /* ---------- Settings ---------- */
 let settingsOpen = false, pendingDelete = null, pendingClDel = null;
 $('btnSettings').addEventListener('click', () => go(settingsOpen ? homeView() : 'settings'));
+$('btnHome').addEventListener('click', () => go('home'));
+$('btnInvoice').addEventListener('click', () => go('invoice'));
 function renderSettings() {
   const p = $('settingsPanel');
   p.hidden = !settingsOpen; setPanels();
@@ -1811,15 +1844,15 @@ function renderSheets() {
     <div class="sheet-preview">${sheetHtml(sheetSel)}</div>`;
 }
 function setPanels() {
-  $('mainApp').hidden = settingsOpen || sheetsOpen || driveOpen;
+  $('homePanel').hidden = !homeOpen;
+  $('mainApp').hidden = settingsOpen || sheetsOpen || driveOpen || homeOpen;
   $('settingsPanel').hidden = !settingsOpen; $('sheetsPanel').hidden = !sheetsOpen; $('drivePanel').hidden = !driveOpen;
-  const back = isDriver() ? 'Back' : 'Back to invoices';
-  $('btnSettings').textContent = settingsOpen ? back : 'Customers & settings';
-  $('btnSheets').textContent = sheetsOpen ? back : 'Trip sheets';
-  $('btnDrive').textContent = driveOpen && !isDriver() ? back : 'Trips & shifts';
+  $('btnSettings').textContent = settingsOpen && isDriver() ? 'Back' : 'Customers & settings';
+  const curBtn = { home: 'btnHome', invoice: 'btnInvoice', past: 'btnInvoice', drive: 'btnDrive', sheets: 'btnSheets', settings: 'btnSettings' }[mView];
+  ['btnHome', 'btnInvoice', 'btnDrive', 'btnSheets', 'btnSettings'].forEach(id => $(id).setAttribute('aria-current', id === curBtn ? 'page' : 'false'));
 }
-$('btnSheets').addEventListener('click', () => go(sheetsOpen ? 'invoice' : 'sheets'));
-$('btnDrive').addEventListener('click', () => go(driveOpen ? 'invoice' : 'drive'));
+$('btnSheets').addEventListener('click', () => go('sheets'));
+$('btnDrive').addEventListener('click', () => go('drive'));
 $('sheetsPanel').addEventListener('click', e => {
   const b = e.target.closest('[data-sheet]');
   if (b) { sheetSel = b.dataset.sheet; renderSheets(); return; }
@@ -1899,12 +1932,13 @@ function afterAdopt() {
   if (cur.customerId !== ONCE && !data.customers.some(c => c.id === cur.customerId)) {
     cur.customerId = (data.customers[0] && data.customers[0].id) || '';
     if (!cur.uid) cur.number = nextNumber();
-    if (!settingsOpen && !sheetsOpen && !driveOpen) { renderAll(); return; }
+    if (!settingsOpen && !sheetsOpen && !driveOpen && !homeOpen) { renderAll(); return; }
   }
   if (!cur.uid && Number(cur.number) <= ltHighest(data)) { cur.number = nextNumber(); $('invNumber').value = cur.number; }
   const a = document.activeElement, typing = a && a !== document.body && /INPUT|SELECT|TEXTAREA/.test(a.tagName);
   if (settingsOpen) { if (!typing || !$('settingsPanel').contains(a)) renderSettings(); }
   else if (driveOpen) { if (!typing || !$('drivePanel').contains(a)) renderDrive(); }
+  else if (homeOpen) renderHome();
   else if (!sheetsOpen) { renderWho(); renderHistory(); renderEmailBox(); renderPaper(); renderLoggedBanner(); }
 }
 async function syncNow() {
@@ -2015,7 +2049,11 @@ $('settingsPanel').addEventListener('click', async e => {
 });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { syncNow(); renderSyncChip(); } });
 window.addEventListener('online', () => syncNow());
-setInterval(() => { if (document.visibilityState === 'visible') { if (Date.now() - syncState.last > 5 * 60000) syncNow(); else renderSyncChip(); } }, 60000);
+setInterval(() => {
+  if (document.visibilityState !== 'visible') return;
+  const watching = !isDriver() && (homeOpen || driveOpen);
+  if (Date.now() - syncState.last > (watching ? 30000 : 5 * 60000)) syncNow(); else renderSyncChip();
+}, 15000);
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
 /* ---------- Drive: shifts and trips, logged on the driver's phone ---------- */
@@ -2553,21 +2591,94 @@ function filledRecordHtml(s) {
   return html;
 }
 
+/* ---------- Home: the front page of her business ---------- */
+let homeTick = null;
+function greeting() { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'; }
+function liveHtml() {
+  const open = data.shifts.filter(s => !s.endedAt && !s.void).sort((a, b) => (a.startedAt || 0) - (b.startedAt || 0));
+  if (!open.length) return '<p class="empty">No one is on shift right now. Drivers show up here as soon as they start a shift.</p>';
+  return open.map(s => {
+    const ride = data.trips.filter(t => t.shiftId === s.id && t.status === 'riding' && !t.void).sort((a, b) => b.pickupAt - a.pickupAt)[0];
+    const done = shiftTrips(s.id).filter(t => t.status === 'done'), tt = sums(done), seen = lastSeen(s.id);
+    const lastDone = done[done.length - 1];
+    return `<div class="live-card ${ride ? 'riding' : ''}">
+      <div class="lc-top"><b>${esc(s.driver || 'Driver')}</b><span>${esc(s.vehicle || '')}</span></div>
+      ${ride ? `<div class="lc-ride"><span class="live-dot">On a ride</span><b class="lc-timer" data-since="${ride.pickupAt}">0:00</b></div>
+        <div class="lc-where">Picked up ${hm(ride.pickupAt)}${ride.pickup ? ' at ' + esc(ride.pickup) : ''}${ride.dropoff ? ' · going to ' + esc(ride.dropoff) : ''}</div>`
+        : `<div class="lc-ride"><span class="avail">Available</span></div>
+        <div class="lc-where">${lastDone ? 'Last drop-off ' + hm(lastDone.dropoffAt) + (lastDone.dropoff ? ' at ' + esc(lastDone.dropoff) : '') : 'No trips yet this shift'}</div>`}
+      <div class="lc-sum">On shift since ${hm(s.startedAt)} · ${tt.n} trip${tt.n === 1 ? '' : 's'} · ${money(tt.all)}</div>
+      ${seen ? `<a class="map-link" href="https://www.google.com/maps/search/?api=1&query=${mapQ(seen)}" target="_blank" rel="noopener">Last seen ${hm(seen.at)} · Map</a>` : ''}
+    </div>`;
+  }).join('');
+}
+function renderHome() {
+  const p = $('homePanel'); p.hidden = !homeOpen;
+  if (!homeOpen) return;
+  const today = todayISO();
+  const todays = live(data.trips).filter(t => t.status === 'done' && t.date === today);
+  const tt = sums(todays);
+  const tabs = tabCustomers().map(c => owed(c)).flat(), tabSum = tabs.reduce((a, t) => a + cents(t.amount), 0);
+  const ready = acctCustomers().filter(c => owed(c).length).length;
+  const recent = live(data.trips).filter(t => t.status === 'done').sort((a, b) => (b.dropoffAt || b.pickupAt || 0) - (a.dropoffAt || a.pickupAt || 0)).slice(0, 8);
+  const lastInv = data.history.slice().sort((a, b) => (Number(b.number) || 0) - (Number(a.number) || 0))[0];
+  if (!syncOn() && !data.customers.length) {
+    p.innerHTML = `<div class="home-hero"><div><h2>Welcome to Lori's Taxi</h2></div></div>
+      <section class="step welcome"><b>Set up this phone</b>
+        <span>Open Settings and paste the setup code from Lori's other phone or computer. Drivers paste their driver code. Everything else comes over by itself.</span>
+        <button type="button" class="primary big" id="btnWelcome">Open settings</button></section>`;
+    return;
+  }
+  p.innerHTML = `
+    <div class="home-hero"><div><small>${new Date().toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })}</small>
+      <h2>${greeting()}, Lori</h2></div><span class="home-sync">${syncOn() ? 'Updates by itself' : 'Sync is off'}</span></div>
+    <div class="home-grid">
+      <section class="step home-live"><h3>Live now</h3>${liveHtml()}</section>
+      <section class="step"><h3>Today</h3><p class="big-num">${tt.n} ride${tt.n === 1 ? '' : 's'} · ${money(tt.all)}</p>${sumsHtml(tt)}</section>
+    </div>
+    <div class="quick">
+      <button type="button" data-home="new"><b>New invoice</b><small>Next number #${nextNumber()}</small></button>
+      <button type="button" data-home="money"><b>Tabs</b><small>${tabSum ? money(tabSum) + ' owed' : 'Nothing owed'}</small></button>
+      <button type="button" data-home="money"><b>Ready to invoice</b><small>${ready ? ready + ' customer' + (ready === 1 ? '' : 's') : 'All caught up'}</small></button>
+      <button type="button" data-home="shifts"><b>All shifts</b><small>Every driver's trips</small></button>
+      <button type="button" data-home="past"><b>Past invoices</b><small>${lastInv ? 'Last: #' + esc(lastInv.number) + ', ' + esc(lastInv.label) : 'None yet'}</small></button>
+      <button type="button" data-home="sheets"><b>Trip sheets</b><small>Print blank sheets</small></button>
+    </div>
+    <section class="step"><h3>Recent rides</h3>${tripRows(recent, true)}</section>`;
+  clearInterval(homeTick);
+  const draw = () => p.querySelectorAll('[data-since]').forEach(el => {
+    const s = Math.max(0, Math.floor((Date.now() - Number(el.dataset.since)) / 1000)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60;
+    el.textContent = (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(s % 60).padStart(2, '0');
+  });
+  draw(); if (p.querySelector('[data-since]')) homeTick = setInterval(draw, 1000);
+}
+$('homePanel').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const h = b.dataset.home;
+  if (b.id === 'btnWelcome') { openSettings(); return; }
+  if (h === 'new') { $('btnNew').click(); return; }
+  if (h === 'money' || h === 'shifts') { driveTab = h; driveShiftView = null; driveEdit = null; go('drive'); return; }
+  if (h === 'past') { go(document.body.classList.contains('m') ? 'past' : 'invoice'); if (!document.body.classList.contains('m')) $('secPast').scrollIntoView({ block: 'start' }); return; }
+  if (h === 'sheets') { go('sheets'); return; }
+  if (b.dataset.dedit) { driveEdit = b.dataset.dedit; go('drive'); }
+});
+
 /* ---------- Phone layout: tab bar, bottom bar, action sheet, full-screen preview ---------- */
 const PHONE = matchMedia('(max-width: 700px)');
-let mView = 'invoice';
+let mView = 'home', homeOpen = false;
 function openSettings() { if (!settingsOpen) go('settings'); }
-const VIEW_TITLES = { invoice: 'Invoice', past: 'Past invoices', drive: 'Drive', sheets: 'Trip sheets', settings: 'Settings' };
-function homeView() { return isDriver() ? 'drive' : 'invoice'; }
+const VIEW_TITLES = { home: 'Home', invoice: 'Invoice', past: 'Past invoices', drive: 'Drive', sheets: 'Trip sheets', settings: 'Settings' };
+function homeView() { return isDriver() ? 'drive' : 'home'; }
 function go(v) { setView(v); }
 function setView(v) {
   if (isDriver() && v !== 'settings') v = 'drive';
-  if (!document.body.classList.contains('m') && v === 'past') v = 'invoice';
   mView = v;
-  settingsOpen = v === 'settings'; sheetsOpen = v === 'sheets'; driveOpen = v === 'drive';
+  settingsOpen = v === 'settings'; sheetsOpen = v === 'sheets'; driveOpen = v === 'drive'; homeOpen = v === 'home';
   setPanels();
-  if (settingsOpen) renderSettings(); else if (sheetsOpen) renderSheets(); else if (driveOpen) renderDrive(); else renderAll();
+  if (settingsOpen) renderSettings(); else if (sheetsOpen) renderSheets(); else if (driveOpen) renderDrive(); else if (homeOpen) renderHome(); else renderAll();
+  if (v === 'past' && !document.body.classList.contains('m')) setTimeout(() => $('secPast').scrollIntoView({ block: 'start', behavior: 'smooth' }), 50);
   if (!driveOpen) stopTimer();
+  if (!homeOpen) clearInterval(homeTick);
   document.body.dataset.view = v;
   $('mViewTitle').textContent = v === 'invoice' ? 'Invoice #' + cur.number : VIEW_TITLES[v];
   $('mTabs').querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-current', b.dataset.view === v ? 'page' : 'false'));
@@ -2577,7 +2688,7 @@ $('mTabs').addEventListener('click', e => { const b = e.target.closest('[data-vi
 function applyPhone() {
   const on = PHONE.matches;
   document.body.classList.toggle('m', on);
-  $('btnNew').textContent = on ? 'New' : 'Start a new invoice';
+  $('btnNew').textContent = on ? 'New' : 'New invoice';
   const sp = $('sharePanel');
   if (on && sp.parentElement !== $('mShareSlot')) $('mShareSlot').appendChild(sp);
   if (!on && sp.parentElement === $('mShareSlot')) $('mailPick').before(sp);
