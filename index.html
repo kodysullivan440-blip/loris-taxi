@@ -149,7 +149,7 @@ body.m .hrow>span:nth-of-type(1){grid-area:b;color:var(--muted);font-size:15px}
 body.m .hrow .hd,body.m .hrow .ht{display:none}
 body.m .hrow>button{grid-area:c;align-self:center}
 /* bottom bar + tab bar */
-body.m .m-tabs{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;left:0;right:0;bottom:0;z-index:30;
+body.m .m-tabs{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:30;
   background:color-mix(in srgb,var(--panel) 92%,transparent);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
   border-top:1px solid var(--line);padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
 .m-tabs button{border:0;background:none;min-height:50px;padding:4px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;font:600 11px var(--ui);color:var(--muted);border-radius:8px}
@@ -192,6 +192,73 @@ body.sheet-open{overflow:hidden}
 body.m .sheet-preview .sh{zoom:.4}
 body.m .sheet-list{grid-template-columns:1fr}
 @media (prefers-reduced-motion:reduce){.m-sheet-card{animation:none}}
+/* ---------- Drive ---------- */
+#drivePanel{gap:14px}
+#drivePanel h2{margin:6px 0 0}
+#drivePanel h3{margin:4px 0 0;font-size:18px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--bg);padding:4px;border-radius:12px}
+.seg button{border:0;background:none;min-height:44px;font-size:16px;border-radius:9px;color:var(--muted)}
+.seg button[aria-selected="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.huge{min-height:84px;font-size:24px;border-radius:16px;width:100%}
+.link.back{align-self:flex-start;font-size:17px;padding:4px 0;text-decoration:none;font-weight:700}
+.shift-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--soft);border-radius:12px;padding:12px 14px}
+.shift-head small{display:block;color:var(--muted);font-size:14px}
+.shift-head b{font-size:19px}
+.live-dot{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:700;color:var(--ok)}
+.live-dot::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--ok)}
+.trip-form{display:flex;flex-direction:column;gap:12px;border:2px solid var(--accent);border-radius:14px;padding:14px}
+.trip-form h3{margin:0}
+.ride-top{display:flex;justify-content:space-between;align-items:center}
+.ride-top small{display:block;color:var(--muted);font-size:14px}
+#rideTimer{font-size:40px;font-variant-numeric:tabular-nums;line-height:1}
+.steppers{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.stepper{display:grid;grid-template-columns:minmax(0,1fr) 48px 40px 48px;align-items:center;gap:4px;background:var(--bg);border-radius:10px;padding:6px 8px}
+.stepper span{font-weight:700;color:var(--muted);font-size:15px}
+.stepper b{text-align:center;font-size:20px;font-variant-numeric:tabular-nums}
+.stepper button{min-height:44px;padding:0;font-size:22px;border-radius:8px}
+.pay-pick>span{display:block;font-weight:700;color:var(--muted);font-size:15px;margin-bottom:6px}
+.seg4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.seg4 button{min-height:52px;padding:6px 4px;font-size:16px}
+.seg4 button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+@media (max-width:420px){.seg4{grid-template-columns:1fr 1fr}}
+.form-end{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.trip-rows{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.trip-row{display:grid;grid-template-columns:72px minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);font-size:16px}
+.trip-row:last-child{border-bottom:0}
+.tr-time{font-weight:700;font-variant-numeric:tabular-nums}
+.tr-time small,.tr-what small,.tr-amt small{display:block;color:var(--muted);font-weight:400;font-size:13px}
+.tr-what{min-width:0;overflow-wrap:anywhere}
+.tr-amt{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.pay-chip{display:block;font-size:12px;font-weight:700;border-radius:999px;padding:1px 8px;margin-top:2px;background:var(--bg);color:var(--muted)}
+.pay-cash{color:var(--ok)}.pay-etransfer{color:#2563a8}.pay-tab{color:var(--warn)}.pay-account{color:var(--accent)}
+@media (max-width:520px){.trip-row{grid-template-columns:58px minmax(0,1fr) auto}.trip-row>button{grid-column:2/-1;justify-self:end}}
+.money-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.money-grid div{background:var(--bg);border-radius:10px;padding:8px 10px}
+.money-grid small{display:block;color:var(--muted);font-size:13px;font-weight:700}
+.money-grid b{font-size:18px;font-variant-numeric:tabular-nums}
+@media (max-width:520px){.money-grid{grid-template-columns:1fr 1fr}}
+.card-soft{background:var(--soft);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.shift-card{border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.sc-head{display:flex;justify-content:space-between;gap:10px}
+.sc-head b{font-size:18px}
+.sc-who{font-weight:700}
+.sc-sum{color:var(--muted);font-size:15px}
+.owe-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.owe-row small{display:block;color:var(--muted);font-size:14px}
+.owe-amt{font-size:19px;font-variant-numeric:tabular-nums}
+.paid-pick{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-weight:700;font-size:15px}
+@media (max-width:520px){.owe-row{grid-template-columns:minmax(0,1fr) auto}.owe-row>button,.owe-row>.paid-pick{grid-column:1/-1}}
+.end-shift{border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:10px}
+.logged{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--soft);border:2px solid var(--accent);border-radius:12px;padding:12px 14px}
+.sh td.fill{font-size:11px;padding:2px 4px;font-family:Arial,sans-serif;vertical-align:middle;overflow:hidden}
+.sh .fillv{display:inline-block;border-bottom:1px solid #000;font-family:Arial,sans-serif;font-weight:700;padding:0 4px}
+.sh h1 small{font-size:14px}
+/* driver phones only log trips */
+body.driver #btnNew,body.driver #btnSheets,body.driver #btnDrive,body.driver #mainApp,body.driver .m-bar{display:none!important}
+body.driver .m-tabs{grid-template-columns:1fr 1fr!important}
+body.driver .m-tabs [data-view="invoice"],body.driver .m-tabs [data-view="past"],body.driver .m-tabs [data-view="sheets"]{display:none}
+body.m .m-tabs{grid-template-columns:repeat(5,1fr)}
+body.m #btnDrive{display:none}
 .combo{display:flex;gap:6px;align-items:stretch}
 .combo input{flex:1;min-width:0}
 .combo-btn{flex:none;min-height:48px;min-width:52px;padding:0 12px;font-size:20px;border-radius:6px}
@@ -759,6 +826,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     <h1><span>Lori's Taxi</span> <span class="d-only">Invoices</span><span class="m-only" id="mViewTitle">Invoice</span></h1>
     <div class="toplinks">
       <button class="small" id="btnNew" type="button">Start a new invoice</button>
+      <button class="small" id="btnDrive" type="button">Trips &amp; shifts</button>
       <button class="small" id="btnSheets" type="button">Trip sheets</button>
       <button class="small" id="btnSettings" type="button">Customers &amp; settings</button>
       <button class="sync-chip" id="syncChip" type="button"></button>
@@ -767,6 +835,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
   <section class="step no-print" id="settingsPanel" hidden></section>
   <section class="step no-print" id="sheetsPanel" hidden></section>
+  <section class="step no-print" id="drivePanel" hidden></section>
 
   <div class="app" id="mainApp">
     <div class="steps no-print">
@@ -788,6 +857,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
             <input id="invDate" type="date"></label>
         </div>
         <p class="hint" id="clientHint" hidden>Pick who rode from the list. Their usual pick-up, drop-off and amount fill in for you, and you can still change any of it.</p>
+        <div id="loggedBanner"></div>
         <div class="trips" id="trips"></div>
         <button type="button" id="btnAddTrip">+ Add another trip</button>
         <div class="totals-ui" id="totalsUi"></div>
@@ -834,7 +904,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   <button type="button" id="mPreview">Preview</button>
   <button type="button" class="primary" id="mFinish">Finish</button>
 </div>
-<nav class="m-tabs no-print" id="mTabs" aria-label="Sections"><button type="button" data-view="invoice"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M10 12h5M10 16h5"/></svg><span>Invoice</span></button><button type="button" data-view="past"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>Past</span></button><button type="button" data-view="sheets"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M4 14h16M10 4v16"/></svg><span>Trip sheets</span></button><button type="button" data-view="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg><span>Settings</span></button></nav>
+<nav class="m-tabs no-print" id="mTabs" aria-label="Sections"><button type="button" data-view="invoice"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M10 12h5M10 16h5"/></svg><span>Invoice</span></button><button type="button" data-view="drive"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16V11l2-5h10l2 5v5"/><path d="M3 16h18v3H3z"/><circle cx="7.5" cy="16.5" r="1.5"/><circle cx="16.5" cy="16.5" r="1.5"/><path d="M5 11h14"/></svg><span>Drive</span></button><button type="button" data-view="past"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>Past</span></button><button type="button" data-view="sheets"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M4 14h16M10 4v16"/></svg><span>Sheets</span></button><button type="button" data-view="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg><span>Settings</span></button></nav>
 <div class="m-sheet no-print" id="mSheet" hidden>
   <div class="m-sheet-card" role="dialog" aria-modal="true">
     <div id="mActions"></div>
@@ -861,26 +931,31 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
 <script>
 /* Lori's Taxi sync: merge two copies of the data. Shared word-for-word by the app and the Google script.
-   Each customer, invoice and the business details carry _t (when it last changed, in ms).
-   The newer copy of each one wins. Deleted customers are remembered in "gone" so they stay deleted. */
+   Each customer, shift, trip, invoice and the business details carry _t (when it last changed, in ms).
+   The newer copy of each one wins. Deleted things are remembered in "gone" so they stay deleted. */
+function ltById(lists, gone) {
+  var m = {}, order = [];
+  lists.forEach(function (list) {
+    (list || []).forEach(function (x) {
+      if (!x || !x.id) return;
+      if (!m[x.id]) { order.push(x.id); m[x.id] = x; }
+      else if ((x._t || 0) > (m[x.id]._t || 0)) m[x.id] = x;
+    });
+  });
+  return order.map(function (id) { return m[id]; })
+    .filter(function (x) { return !(gone[x.id] && gone[x.id] >= (x._t || 0)); });
+}
 function ltMerge(a, b) {
   a = a || {}; b = b || {};
-  var out = { v: 4 };
+  var out = { v: 5 };
   var ba = a.business, bb = b.business;
   out.business = !ba ? bb : !bb ? ba : ((bb._t || 0) > (ba._t || 0) ? bb : ba);
   var gone = {}, k;
   [a.gone || {}, b.gone || {}].forEach(function (g) { for (k in g) gone[k] = Math.max(gone[k] || 0, g[k]); });
   out.gone = gone;
-  var cm = {}, order = [];
-  [a.customers || [], b.customers || []].forEach(function (list) {
-    list.forEach(function (c) {
-      if (!c || !c.id) return;
-      if (!cm[c.id]) { order.push(c.id); cm[c.id] = c; }
-      else if ((c._t || 0) > (cm[c.id]._t || 0)) cm[c.id] = c;
-    });
-  });
-  out.customers = order.map(function (id) { return cm[id]; })
-    .filter(function (c) { return !(gone[c.id] && gone[c.id] >= (c._t || 0)); });
+  out.customers = ltById([a.customers, b.customers], gone);
+  out.shifts = ltById([a.shifts, b.shifts], gone);
+  out.trips = ltById([a.trips, b.trips], gone);
   var hm = {};
   [a.history || [], b.history || []].forEach(function (list) {
     list.forEach(function (h) {
@@ -926,7 +1001,7 @@ const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 
 const NOBODY = { id: '', label: '', cols: 'trip', hst: false, email: '', billTo: '', places: [], clients: [] };
 function blankData() {
-  return { v: 4, business: { ...clone(DEFAULTS.business), _t: 1 }, customers: clone(DEFAULTS.customers).map(c => ({ ...c, _t: 1 })), history: [], gone: {}, counter: 0 };
+  return { v: 5, business: { ...clone(DEFAULTS.business), _t: 1 }, customers: clone(DEFAULTS.customers).map(c => ({ ...c, _t: 1 })), history: [], shifts: [], trips: [], gone: {}, counter: 0 };
 }
 /* bring older saved data or older backups up to date */
 function upgrade(d) {
@@ -936,6 +1011,8 @@ function upgrade(d) {
     business: { ...DEFAULTS.business, ...(d.business || {}) },
     customers: (d.customers || []).map(c => ({ places: [], clients: [], ...c, _t: c._t || 1 })),
     history: (d.history || []).map(h => ({ ...h, uid: h.uid || ('n' + h.number), _t: h._t || 1 })),
+    shifts: (d.shifts || []).map(x => ({ ...x, _t: x._t || 1 })),
+    trips: (d.trips || []).map(x => ({ ...x, _t: x._t || 1 })),
     gone: d.gone || {},
     counter: d.counter || 0
   };
@@ -950,18 +1027,21 @@ let data = load();
 /* Remember how everything looked at the last save, so a save can mark only what changed. */
 let snap = null;
 const strip = o => { const { _t, ...r } = o; return JSON.stringify(r); };
+const KEYED = ['customers', 'shifts', 'trips'];
 function takeSnap() {
-  snap = { biz: strip(data.business), cust: {}, hist: {} };
-  data.customers.forEach(c => { snap.cust[c.id] = strip(c); });
+  snap = { biz: strip(data.business), k: {}, hist: {} };
+  KEYED.forEach(k => { snap.k[k] = {}; data[k].forEach(x => { snap.k[k][x.id] = strip(x); }); });
   data.history.forEach(h => { snap.hist[h.uid] = strip(h); });
 }
 takeSnap();
 function stamp() {
   const now = Date.now();
   if (strip(data.business) !== snap.biz) data.business._t = now;
-  const ids = new Set();
-  data.customers.forEach(c => { ids.add(c.id); if (snap.cust[c.id] !== strip(c)) c._t = now; });
-  Object.keys(snap.cust).forEach(id => { if (!ids.has(id)) data.gone[id] = now; });
+  KEYED.forEach(k => {
+    const ids = new Set();
+    data[k].forEach(x => { ids.add(x.id); if (snap.k[k][x.id] !== strip(x)) x._t = now; });
+    Object.keys(snap.k[k]).forEach(id => { if (!ids.has(id)) data.gone[id] = now; });
+  });
   const uids = new Set();
   data.history.forEach(h => { uids.add(h.uid); if (snap.hist[h.uid] !== strip(h)) h._t = now; });
   Object.keys(snap.hist).forEach(u => { if (!uids.has(u)) data.gone[u] = now; });
@@ -1198,14 +1278,14 @@ function placeField(i, t, f, label, c) {
 }
 let placeTarget = null;
 function renderPlaceList(q) {
-  const list = (cust().places || []).filter(p => !q || p.toLowerCase().includes(q.toLowerCase()));
+  const list = (placeTarget ? placeTarget.list : []).filter(p => !q || p.toLowerCase().includes(q.toLowerCase()));
   $('placeList').innerHTML = list.length
     ? list.map(p => `<button type="button" data-place="${esc(p)}">${esc(p)}</button>`).join('')
     : '<p class="empty">No saved place matches. Close this and type it in.</p>';
 }
-function openPlaces(f, i) {
-  placeTarget = { f, i };
-  $('placeTitle').textContent = f === 'pickup' ? 'Picked up at' : 'Dropped off at';
+function openPlaces(list, title, onPick) {
+  placeTarget = { list, onPick };
+  $('placeTitle').textContent = title;
   $('placeSearch').value = '';
   renderPlaceList('');
   $('placeSheet').hidden = false; document.body.classList.add('sheet-open');
@@ -1215,13 +1295,11 @@ $('placeSearch').addEventListener('input', e => renderPlaceList(e.target.value))
 $('placeSheet').addEventListener('click', e => {
   if (e.target.id === 'placeSheet' || e.target.id === 'placeClose') { closePlaces(); return; }
   const b = e.target.closest('[data-place]'); if (!b || !placeTarget) return;
-  const { f, i } = placeTarget;
-  cur.trips[i][f] = b.dataset.place;
-  const inp = $('t' + i + f); if (inp) inp.value = b.dataset.place;
-  renderPaper(); closePlaces();
+  const pick = placeTarget.onPick; closePlaces(); pick(b.dataset.place);
 });
 function renderTrips() {
   const c = cust();
+  renderLoggedBanner();
   $('clientHint').hidden = !(usesClients(c) && (c.clients || []).length);
   $('invNumber').value = cur.number; $('invDate').value = cur.date;
   const pl = `<datalist id="dlPlaces">${(c.places || []).map(p => `<option value="${esc(p)}"></option>`).join('')}</datalist>`;
@@ -1262,7 +1340,14 @@ $('trips').addEventListener('change', e => {
 });
 $('trips').addEventListener('click', e => {
   const pp = e.target.closest('[data-pickplace]');
-  if (pp) { e.preventDefault(); openPlaces(pp.dataset.pickplace, +pp.dataset.i); return; }
+  if (pp) {
+    e.preventDefault();
+    const f = pp.dataset.pickplace, i = +pp.dataset.i;
+    openPlaces(cust().places || [], f === 'pickup' ? 'Picked up at' : 'Dropped off at', v => {
+      cur.trips[i][f] = v; const inp = $('t' + i + f); if (inp) inp.value = v; renderPaper();
+    });
+    return;
+  }
   const r = e.target.closest('[data-remove]'); if (!r) return;
   cur.trips.splice(+r.dataset.remove, 1); renderTrips(); renderPaper();
 });
@@ -1338,6 +1423,7 @@ function keepInvoice() {
   if (!cur.uid) cur.uid = newId('i');
   const rec = { uid: cur.uid, number: String(cur.number), customerId: c.id, label: c.label, date: cur.date, trips: clone(cur.trips), total: totals().total, once: cur.customerId === ONCE ? clone(cur.once) : null };
   if (cur.offline) rec.offline = true;
+  cur.trips.forEach(x => { if (x.logId) { const lt = data.trips.find(t => t.id === x.logId); if (lt && !lt.invoiceUid) lt.invoiceUid = cur.uid; } });
   const i = data.history.findIndex(h => h.uid === rec.uid);
   if (i >= 0) data.history[i] = { ...data.history[i], ...rec }; else data.history.push(rec);
   stamp(); store(); renderHistory(); syncNow();
@@ -1352,14 +1438,15 @@ const SHARE_MODE = (() => {
 if (SHARE_MODE) { $('howDesk').hidden = true; $('howPhone').hidden = false; }
 function pdfName() { return `Invoice ${cur.number} - ${cust().label}.pdf`.replace(/[\\/:*?"<>|]/g, ''); }
 /* Draw a page (invoice or trip sheet) into a letter-size PDF. */
-async function renderToPdf(el, landscape) {
+async function renderToPdf(el, landscape, into) {
   const W = landscape ? 1056 : 816, H = landscape ? 816 : 1056;
   const holder = document.createElement('div'); holder.className = 'capture-holder'; holder.style.width = W + 'px';
   holder.appendChild(el); document.body.appendChild(holder);
   try {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
     const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', width: W, height: H, windowWidth: W });
-    const pdf = new window.jspdf.jsPDF({ unit: 'pt', format: 'letter', orientation: landscape ? 'landscape' : 'portrait' });
+    const pdf = into || new window.jspdf.jsPDF({ unit: 'pt', format: 'letter', orientation: landscape ? 'landscape' : 'portrait' });
+    if (into) pdf.addPage('letter', landscape ? 'landscape' : 'portrait');
     pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, landscape ? 792 : 612, landscape ? 612 : 792);
     return pdf;
   } finally { holder.remove(); }
@@ -1535,12 +1622,15 @@ $('btnNew').addEventListener('click', () => { $('mailPick').hidden = true; $('sh
 
 /* ---------- Settings ---------- */
 let settingsOpen = false, pendingDelete = null, pendingClDel = null;
-$('btnSettings').addEventListener('click', () => { settingsOpen = !settingsOpen; if (settingsOpen && sheetsOpen) { sheetsOpen = false; renderSheets(); $('btnSheets').textContent = 'Trip sheets'; } renderSettings(); });
+$('btnSettings').addEventListener('click', () => go(settingsOpen ? homeView() : 'settings'));
 function renderSettings() {
   const p = $('settingsPanel');
-  p.hidden = !settingsOpen; $('mainApp').hidden = settingsOpen;
-  $('btnSettings').textContent = settingsOpen ? 'Back to invoices' : 'Customers & settings';
-  if (!settingsOpen) { renderAll(); return; }
+  p.hidden = !settingsOpen; setPanels();
+  if (!settingsOpen) return;
+  if (isDriver()) {
+    p.innerHTML = `<div class="settings">${syncSectionHtml()}<p class="hint">This phone is set up for a driver. It only logs shifts and trips.</p></div>`;
+    return;
+  }
   const b = data.business;
   p.innerHTML = `<div class="settings">
     ${syncSectionHtml()}
@@ -1562,6 +1652,10 @@ function renderSettings() {
           <label for="c${i}cols">Columns on invoice<select id="c${i}cols" data-c="cols">${colOptions(c.cols)}</select></label>
         </div>
         <label for="c${i}bill">"Bill to" (first line prints in bold)<textarea id="c${i}bill" data-c="billTo">${esc(c.billTo)}</textarea></label>
+        <label for="c${i}kind">How they pay<select id="c${i}kind" data-c="kind">
+          <option value="account"${(c.kind || 'account') === 'account' ? ' selected' : ''}>Account: gets an invoice</option>
+          <option value="tab-pay"${c.kind === 'tab-pay' ? ' selected' : ''}>Tab: pays it off in cash or e-transfer</option>
+          <option value="tab-invoice"${c.kind === 'tab-invoice' ? ' selected' : ''}>Tab: gets an invoice for it</option></select></label>
         <label class="check" for="c${i}hst"><input id="c${i}hst" type="checkbox" data-c="hst"${c.hst ? ' checked' : ''}> Add HST to this customer's invoices</label>
         ${usesClients(c) ? `<div class="cl-edit"><b>Clients (people who ride)</b>
           ${(c.clients || []).map((x, j) => `<div class="cl-row" data-cj="${j}">
@@ -1649,7 +1743,8 @@ function sheetFooter() {
   return `<div class="foot"><span>TOTAL RECEIVED CASH ($): ${line('1.1in')}</span><span>SIGNATURE: ${line('1.4in')}</span>
     <span>TOTAL RECEIVED E-TRANS($): ${line('1in')}</span><span>E-Transfer Email - Lori.home69@gmail.com</span></div>`;
 }
-function sheetHtml(id) {
+function sheetHtml(id, shift) {
+  if (id === 'record' && shift) return filledRecordHtml(shift);
   if (id === 'record' || id === 'riverview') {
     const cols = id === 'record'
       ? ['Time', 'Pick up location (EXACT)', 'Drop off location (EXACT)', '# of People', '# of stops', 'Received ($)', 'Payment type', 'Additional comments']
@@ -1702,46 +1797,52 @@ function renderSheets() {
     <div class="sheet-preview">${sheetHtml(sheetSel)}</div>`;
 }
 function setPanels() {
-  $('mainApp').hidden = settingsOpen || sheetsOpen;
-  $('btnSheets').textContent = sheetsOpen ? 'Back to invoices' : 'Trip sheets';
+  $('mainApp').hidden = settingsOpen || sheetsOpen || driveOpen;
+  $('settingsPanel').hidden = !settingsOpen; $('sheetsPanel').hidden = !sheetsOpen; $('drivePanel').hidden = !driveOpen;
+  const back = isDriver() ? 'Back' : 'Back to invoices';
+  $('btnSettings').textContent = settingsOpen ? back : 'Customers & settings';
+  $('btnSheets').textContent = sheetsOpen ? back : 'Trip sheets';
+  $('btnDrive').textContent = driveOpen && !isDriver() ? back : 'Trips & shifts';
 }
-$('btnSheets').addEventListener('click', () => {
-  sheetsOpen = !sheetsOpen;
-  if (sheetsOpen && settingsOpen) { settingsOpen = false; $('settingsPanel').hidden = true; $('btnSettings').textContent = 'Customers & settings'; }
-  setPanels(); renderSheets();
-  if (!sheetsOpen) renderAll();
-});
+$('btnSheets').addEventListener('click', () => go(sheetsOpen ? 'invoice' : 'sheets'));
+$('btnDrive').addEventListener('click', () => go(driveOpen ? 'invoice' : 'drive'));
 $('sheetsPanel').addEventListener('click', e => {
   const b = e.target.closest('[data-sheet]');
   if (b) { sheetSel = b.dataset.sheet; renderSheets(); return; }
   if (e.target.id === 'btnPrintSheet') {
-    if (IN_PREVIEW) { $('sheetStatus').textContent = 'This is a preview, so printing is blocked. Open the file in Chrome or Edge first.'; $('sheetStatus').classList.add('bad'); return; }
-    if (sheetSel === 'school' && (!schoolSel || schoolSel === '__other')) { $('sheetStatus').textContent = 'Type the school name first.'; $('sheetStatus').classList.add('bad'); return; }
-    if (SHARE_MODE) { shareSheet(); return; }
-    $('sheetPrint').innerHTML = sheetHtml(sheetSel);
-    const st = document.createElement('style'); st.id = 'sheetPage';
-    st.textContent = `@page{size:letter ${sheetLandscape(sheetSel) ? 'landscape' : 'portrait'};margin:0}`;
-    document.head.appendChild(st);
-    document.body.classList.add('sheet-mode');
-    const prevTitle = document.title; document.title = SHEETS.find(x => x.id === sheetSel).name;
-    const done = () => { document.body.classList.remove('sheet-mode'); st.remove(); $('sheetPrint').innerHTML = ''; document.title = prevTitle; window.removeEventListener('afterprint', done); };
-    window.addEventListener('afterprint', done);
-    window.print();
+    const st = $('sheetStatus');
+    if (IN_PREVIEW) { st.textContent = 'This is a preview, so printing is blocked. Open the app itself.'; st.classList.add('bad'); return; }
+    if (sheetSel === 'school' && (!schoolSel || schoolSel === '__other')) { st.textContent = 'Type the school name first.'; st.classList.add('bad'); return; }
+    printPages(sheetHtml(sheetSel), sheetLandscape(sheetSel), SHEETS.find(x => x.id === sheetSel).name, 'sheetStatus');
   }
 });
-let sheetJob = null;
-async function shareSheet() {
-  const st = $('sheetStatus'); st.classList.remove('bad'); st.textContent = 'Making the PDF…';
-  const holder = document.createElement('div'); holder.innerHTML = sheetHtml(sheetSel);
-  try {
-    const pdf = await renderToPdf(holder.firstElementChild, sheetLandscape(sheetSel));
-    const name = SHEETS.find(x => x.id === sheetSel).name + '.pdf';
-    sheetJob = new File([pdf.output('blob')], name, { type: 'application/pdf' });
-    st.innerHTML = 'Ready. <button type="button" class="primary" id="btnSheetShare">Print or save it</button> Pick <b>Print</b> in the menu, and set the number of copies there.';
-  } catch (err) { st.textContent = 'The sheet could not be made. Try again.'; st.classList.add('bad'); }
+/* Print one or more letter pages: the print box on a computer, the share menu on a phone. */
+let pagesJob = null;
+async function printPages(html, landscape, title, where) {
+  const box = () => (typeof where === 'string' ? $(where) : where) || { classList: { add() {}, remove() {} } };
+  if (SHARE_MODE) {
+    box().classList.remove('bad'); box().textContent = 'Making the PDF…';
+    const holder = document.createElement('div'); holder.innerHTML = html;
+    try {
+      let pdf = null;
+      for (const el of [...holder.children]) pdf = await renderToPdf(el, landscape, pdf);
+      pagesJob = new File([pdf.output('blob')], title + '.pdf', { type: 'application/pdf' });
+      box().innerHTML = 'Ready. <button type="button" class="primary" data-sharepages>Print or save it</button> Pick <b>Print</b> in the menu, and set the copies there.';
+    } catch (err) { box().textContent = 'It could not be made. Try again.'; box().classList.add('bad'); }
+    return;
+  }
+  $('sheetPrint').innerHTML = html;
+  const sty = document.createElement('style');
+  sty.textContent = `@page{size:letter ${landscape ? 'landscape' : 'portrait'};margin:0}`;
+  document.head.appendChild(sty);
+  document.body.classList.add('sheet-mode');
+  const prevTitle = document.title; document.title = title;
+  const done = () => { document.body.classList.remove('sheet-mode'); sty.remove(); $('sheetPrint').innerHTML = ''; document.title = prevTitle; window.removeEventListener('afterprint', done); };
+  window.addEventListener('afterprint', done);
+  window.print();
 }
-$('sheetsPanel').addEventListener('click', e => {
-  if (e.target.id === 'btnSheetShare' && sheetJob) navigator.share({ files: [sheetJob], title: sheetJob.name }).catch(() => {});
+document.addEventListener('click', e => {
+  if (e.target.closest('[data-sharepages]') && pagesJob) navigator.share({ files: [pagesJob], title: pagesJob.name }).catch(() => {});
 });
 $('sheetsPanel').addEventListener('change', e => {
   if (e.target.id === 'schoolPick') { schoolSel = e.target.value; renderSheets(); if (schoolSel === '__other') $('schoolOther').focus(); }
@@ -1784,19 +1885,19 @@ function afterAdopt() {
   if (cur.customerId !== ONCE && !data.customers.some(c => c.id === cur.customerId)) {
     cur.customerId = (data.customers[0] && data.customers[0].id) || '';
     if (!cur.uid) cur.number = nextNumber();
-    if (!settingsOpen && !sheetsOpen) { renderAll(); return; }
+    if (!settingsOpen && !sheetsOpen && !driveOpen) { renderAll(); return; }
   }
   if (!cur.uid && Number(cur.number) <= ltHighest(data)) { cur.number = nextNumber(); $('invNumber').value = cur.number; }
-  if (settingsOpen) {
-    const a = document.activeElement;
-    if (!a || a === document.body || !$('settingsPanel').contains(a)) renderSettings();
-  } else if (!sheetsOpen) { renderWho(); renderHistory(); renderEmailBox(); renderPaper(); }
+  const a = document.activeElement, typing = a && a !== document.body && /INPUT|SELECT|TEXTAREA/.test(a.tagName);
+  if (settingsOpen) { if (!typing || !$('settingsPanel').contains(a)) renderSettings(); }
+  else if (driveOpen) { if (!typing || !$('drivePanel').contains(a)) renderDrive(); }
+  else if (!sheetsOpen) { renderWho(); renderHistory(); renderEmailBox(); renderPaper(); renderLoggedBanner(); }
 }
 async function syncNow() {
   if (!syncOn()) return false;
   if (syncState.busy) { syncState.again = true; return syncState.busy; }
   syncState.busy = (async () => {
-    try { const j = await callSync('sync'); adopt(j.data); afterAdopt(); return true; }
+    try { const j = await callSync('sync'); noteRole(j); adopt(j.data); afterAdopt(); return true; }
     catch (e) { syncState.err = errText(e); return false; }
     finally {
       syncState.busy = null; renderSyncChip();
@@ -1831,27 +1932,30 @@ $('syncChip').addEventListener('click', () => {
   const h = $('syncHead'); if (h) h.scrollIntoView({ block: 'start', behavior: 'smooth' });
   if (syncOn()) syncNow();
 });
-function setupCode(c) { return 'LT1-' + btoa(unescape(encodeURIComponent(JSON.stringify({ u: c.u, k: c.k })))); }
+function setupCode(c) { return 'LT1-' + btoa(unescape(encodeURIComponent(JSON.stringify(c.r === 'driver' ? { u: c.u, k: c.k, r: 'driver' } : { u: c.u, k: c.k })))); }
 function readSetupCode(text) {
   const m = /LT1-([A-Za-z0-9+/=]+)/.exec(String(text || '').replace(/\s+/g, ''));
   if (!m) return null;
-  try { const o = JSON.parse(decodeURIComponent(escape(atob(m[1])))); return o.u && o.k ? { u: o.u, k: o.k } : null; } catch (e) { return null; }
+  try { const o = JSON.parse(decodeURIComponent(escape(atob(m[1])))); return o.u && o.k ? { u: o.u, k: o.k, r: o.r === 'driver' ? 'driver' : 'owner' } : null; } catch (e) { return null; }
 }
 let pendingDisconnect = false;
 function syncSectionHtml() {
   if (syncOn()) return `
-    <h2 id="syncHead">Sync between her phone and computer</h2>
+    <h2 id="syncHead">${isDriver() ? 'Connected as a driver' : 'Sync between her phone and computer'}</h2>
     <p class="hint">This device is connected. Last synced ${ago(syncState.last)}${syncState.err ? `, but the last try failed: ${esc(syncState.err)}` : ''}.</p>
     <div class="actions">
       <button type="button" id="btnSyncNow">Sync now</button>
       <button type="button" id="btnCopySetup">Copy setup code for another device</button>
       <button type="button" id="btnDisconnect">${pendingDisconnect ? 'Press again to disconnect' : 'Disconnect this device'}</button>
     </div>
+    ${!isDriver() && cfg.dk ? `<div class="actions"><button type="button" id="btnCopyDriver">Copy driver code (for drivers' phones)</button></div>
+    <p class="hint">A driver code only lets a phone log shifts and trips. Drivers never see invoices, emails or member IDs.</p>` : ''}
     <code class="setup-code" id="setupOut" hidden>${esc(setupCode(cfg))}</code>
+    ${!isDriver() && cfg.dk ? `<code class="setup-code" id="driverOut" hidden>${esc(setupCode({ u: cfg.u, k: cfg.dk, r: 'driver' }))}</code>` : ''}
     <div class="status" id="syncMsg" role="status" aria-live="polite"></div>`;
   return `
     <h2 id="syncHead">Sync between her phone and computer</h2>
-    <p class="hint">Paste the setup code to connect this device. Its customers and invoices will then match her other devices, and invoice numbers never repeat.</p>
+    <p class="hint">Paste the setup code (or a driver code) to connect this device. Everything then matches her other devices, and invoice numbers never repeat.</p>
     <label for="setupIn">Setup code<input id="setupIn" placeholder="Starts with LT1-" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
     <details class="firsttime"><summary>First time only: web address and passcode</summary>
       <label for="syncUrl">Sync web address<input id="syncUrl" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
@@ -1869,8 +1973,10 @@ $('settingsPanel').addEventListener('click', async e => {
     msg('Connecting…');
     try {
       const j = await callSync('sync', null, c);
-      cfg = c; try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (err) {}
-      adopt(j.data); afterAdopt(); renderSettings(); renderSyncChip();
+      cfg = c; noteRole(j);
+      adopt(j.data); afterAdopt(); renderSyncChip();
+      if (isDriver()) { go('drive'); setStatus('Connected as a driver. Start a shift when you are ready.'); return; }
+      renderSettings();
       msg(`Connected. This device now has ${data.customers.length} customers and ${data.history.length} invoices.`);
     } catch (err) { bad('Could not connect: ' + errText(err) + '.'); }
   }
@@ -1880,9 +1986,16 @@ $('settingsPanel').addEventListener('click', async e => {
     try { await navigator.clipboard.writeText(out.textContent); msg('Setup code copied. Paste it into Settings on her other device.'); }
     catch (err) { const r = document.createRange(); r.selectNodeContents(out); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); msg('Copy the setup code shown above.'); }
   }
+  if (id === 'btnCopyDriver') {
+    const out = $('driverOut'); out.hidden = false;
+    try { await navigator.clipboard.writeText(out.textContent); msg('Driver code copied. On the driver\'s phone, open the app, go to Settings and paste it.'); }
+    catch (err) { const r = document.createRange(); r.selectNodeContents(out); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); msg('Copy the driver code shown above.'); }
+  }
   if (id === 'btnDisconnect') {
     if (!pendingDisconnect) { pendingDisconnect = true; renderSettings(); return; }
+    const wasDriver = isDriver();
     pendingDisconnect = false; cfg = null; try { localStorage.removeItem(CFG_KEY); } catch (err) {}
+    if (wasDriver) { data = blankData(); takeSnap(); store(); applyRole(); }
     renderSettings(); renderSyncChip();
   }
 });
@@ -1891,21 +2004,429 @@ window.addEventListener('online', () => syncNow());
 setInterval(() => { if (document.visibilityState === 'visible') { if (Date.now() - syncState.last > 5 * 60000) syncNow(); else renderSyncChip(); } }, 60000);
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
+/* ---------- Drive: shifts and trips, logged on the driver's phone ---------- */
+const DEV_KEY = 'loris-taxi-device';
+let dev = {};
+try { dev = JSON.parse(localStorage.getItem(DEV_KEY) || '{}') || {}; } catch (e) {}
+function saveDev() { try { localStorage.setItem(DEV_KEY, JSON.stringify(dev)); } catch (e) {} }
+let driveOpen = false, driveTab = 'shift', driveEdit = null, driveShiftView = null;
+let pendingEnd = false, pendingVoid = null, pendingPaid = null;
+function isDriver() { return !!(cfg && cfg.r === 'driver'); }
+function noteRole(j) {
+  if (!cfg || !j) return;
+  if (j.role) cfg.r = j.role;
+  if (j.driverKey) cfg.dk = j.driverKey;
+  try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (e) {}
+  applyRole();
+}
+function applyRole() {
+  document.body.classList.toggle('driver', isDriver());
+  if (isDriver() && !settingsOpen && !driveOpen) go('drive');
+}
+const PAY = { cash: 'Cash', etransfer: 'E-transfer', tab: 'Tab', account: 'Account' };
+const live = list => (list || []).filter(x => !x.void && x.status !== 'draft');
+const kindOf = c => (c && c.kind) || 'account';
+const tabCustomers = () => data.customers.filter(c => kindOf(c).startsWith('tab'));
+const acctCustomers = () => data.customers.filter(c => !kindOf(c).startsWith('tab'));
+function myShift() { return data.shifts.find(s => s.id === dev.shiftId && !s.endedAt) || null; }
+function shiftTrips(id) { return live(data.trips).filter(t => t.shiftId === id).sort((a, b) => (a.pickupAt || 0) - (b.pickupAt || 0)); }
+function rideNow() { return data.trips.find(t => t.id === dev.tripId && t.status === 'riding' && !t.void) || null; }
+function findTrip(id) { return data.trips.find(t => t.id === id) || null; }
+const hm = ms => ms ? new Date(ms).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' }).replace(/\./g, '') : '';
+function dur(a, b) {
+  if (!a || !b) return '';
+  const m = Math.max(0, Math.round((b - a) / 60000));
+  if (m < 1) return 'under a minute';
+  return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + (m % 60) + ' min';
+}
+function isoDate(ms) { const d = new Date(ms); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function hhmm(ms) { if (!ms) return ''; const d = new Date(ms); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+function joinDT(date, time) { const p = parts(date); const m = /^(\d{1,2}):(\d{2})$/.exec(time || ''); if (!p || !m) return 0; return new Date(p.y, p.m - 1, p.d, +m[1], +m[2]).getTime(); }
+function niceDate(iso) { const p = parts(iso); if (!p) return ''; return new Date(p.y, p.m - 1, p.d).toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric' }); }
+function allPlaces() {
+  const set = new Set();
+  data.customers.forEach(c => (c.places || []).forEach(p => p && set.add(p)));
+  live(data.trips).slice(-300).forEach(t => { if (t.pickup) set.add(t.pickup); if (t.dropoff) set.add(t.dropoff); });
+  return [...set].sort((a, b) => a.localeCompare(b));
+}
+function pastValues(f) { return [...new Set(data.shifts.map(s => s[f]).filter(Boolean))]; }
+function sums(trips) {
+  const t = { cash: 0, etransfer: 0, tab: 0, account: 0, all: 0, n: 0 };
+  trips.forEach(x => { if (x.status !== 'done') return; const c = cents(x.amount); t[x.pay] = (t[x.pay] || 0) + c; t.all += c; t.n++; });
+  return t;
+}
+function sumsHtml(t) {
+  return `<div class="money-grid">
+    <div><small>Cash</small><b>${money(t.cash)}</b></div><div><small>E-transfer</small><b>${money(t.etransfer)}</b></div>
+    <div><small>Tab</small><b>${money(t.tab)}</b></div><div><small>Account</small><b>${money(t.account)}</b></div></div>`;
+}
+function customerName(t) { const c = data.customers.find(x => x.id === t.customerId); return c ? c.label : (t.newName ? t.newName + ' (new)' : ''); }
+function tripLine(t) {
+  const who = (t.pay === 'tab' || t.pay === 'account') ? customerName(t) + (t.rider ? ' · ' + t.rider : '') : '';
+  return `${esc(t.pickup || '?')} → ${esc(t.dropoff || '?')}${who ? `<small>${esc(who)}</small>` : ''}`;
+}
+function tripRows(trips, editable) {
+  if (!trips.length) return '<p class="empty">No trips yet.</p>';
+  return `<div class="trip-rows">${trips.map(t => `
+    <div class="trip-row">
+      <div class="tr-time">${hm(t.pickupAt)}<small>${t.dropoffAt ? dur(t.pickupAt, t.dropoffAt) : 'riding'}</small></div>
+      <div class="tr-what">${tripLine(t)}</div>
+      <div class="tr-amt">${money(cents(t.amount))}<span class="pay-chip pay-${esc(t.pay || 'none')}">${PAY[t.pay] || '—'}</span>
+        ${t.invoiceUid ? '<small>invoiced</small>' : t.paidAt ? '<small>tab paid</small>' : ''}</div>
+      ${editable ? `<button type="button" class="small" data-dedit="${esc(t.id)}">Edit</button>` : ''}
+    </div>`).join('')}</div>`;
+}
+const stepper = (f, v, label) => `<div class="stepper"><span>${label}</span>
+  <button type="button" data-step="${f}" data-delta="-1" aria-label="Fewer ${label.toLowerCase()}">−</button><b id="dt_${f}">${v}</b>
+  <button type="button" data-step="${f}" data-delta="1" aria-label="More ${label.toLowerCase()}">+</button></div>`;
+function placeInput(f, label, v) {
+  return `<label for="dt_${f}" class="wide">${label}<span class="combo"><input id="dt_${f}" data-dt="${f}" value="${esc(v || '')}" autocomplete="off">
+    <button type="button" class="combo-btn" data-dplace="${f}" aria-label="Choose a saved place">▾</button></span></label>`;
+}
+/* The trip form: used while riding, for a forgotten trip, and for editing. */
+function tripFormHtml(t, mode) {
+  const custs = t.pay === 'tab' ? tabCustomers() : t.pay === 'account' ? acctCustomers() : [];
+  const c = data.customers.find(x => x.id === t.customerId);
+  const riders = c && c.clients && c.clients.length ? c.clients : null;
+  const riding = mode === 'ride';
+  return `<div class="trip-form" data-trip="${esc(t.id)}">
+    ${riding ? `<div class="ride-top"><div><small>Picked up at ${hm(t.pickupAt)}</small><b id="rideTimer">0:00</b></div><span class="live-dot">Riding</span></div>` : `
+      <h3>${mode === 'new' ? 'Add a trip I forgot' : 'Trip'}</h3>
+      <div class="fields">
+        <label for="dt_date">Date<input id="dt_date" type="date" data-dtime="date" value="${esc(t.date || todayISO())}"></label>
+        <label for="dt_pt">Picked up<input id="dt_pt" type="time" data-dtime="pickupAt" value="${hhmm(t.pickupAt)}"></label>
+        <label for="dt_dt">Dropped off<input id="dt_dt" type="time" data-dtime="dropoffAt" value="${hhmm(t.dropoffAt)}"></label>
+      </div>`}
+    <div class="fields">
+      ${placeInput('pickup', 'Picked up at', t.pickup)}
+      ${placeInput('dropoff', 'Dropped off at', t.dropoff)}
+    </div>
+    <div class="steppers">${stepper('people', t.people || 1, 'People')}${stepper('stops', t.stops || 0, 'Stops')}</div>
+    <label for="dt_amount" class="money">Amount<input id="dt_amount" data-dt="amount" inputmode="decimal" placeholder="0.00" value="${esc(t.amount || '')}"></label>
+    <div class="pay-pick"><span>How was it paid?</span><div class="seg4">
+      ${Object.entries(PAY).map(([k, l]) => `<button type="button" data-dpay="${k}" aria-pressed="${t.pay === k}">${l}</button>`).join('')}</div></div>
+    ${t.pay === 'tab' || t.pay === 'account' ? `
+      <label for="dt_cust">${t.pay === 'tab' ? 'Whose tab?' : 'Which account?'}<select id="dt_cust" data-dsel="customerId">
+        <option value="">Pick one…</option>
+        ${custs.map(x => `<option value="${esc(x.id)}"${x.id === t.customerId ? ' selected' : ''}>${esc(x.label)}</option>`).join('')}
+        <option value="__new"${!t.customerId && t.newName !== undefined && t.newName !== null ? ' selected' : ''}>Someone new (type the name)</option></select></label>
+      ${!t.customerId && t.newName !== undefined && t.newName !== null ? `<label for="dt_newName">Name<input id="dt_newName" data-dt="newName" value="${esc(t.newName || '')}" placeholder="Who is it?"></label>` : ''}
+      ${riders ? `<label for="dt_rider">Who rode?<select id="dt_rider" data-dsel="rider"><option value="">Pick who rode…</option>
+        ${riders.map(r => `<option${r.name === t.rider ? ' selected' : ''}>${esc(r.name)}</option>`).join('')}
+        <option value="__new"${t.rider && !riders.some(r => r.name === t.rider) ? ' selected' : ''}>Someone else (type it)</option></select></label>
+        ${t.rider && !riders.some(r => r.name === t.rider) || t.riderNew ? `<label for="dt_riderText">Rider's name<input id="dt_riderText" data-dt="rider" value="${esc(t.rider || '')}"></label>` : ''}`
+      : (t.pay === 'account' && t.customerId ? `<label for="dt_riderText">Rider's name (if any)<input id="dt_riderText" data-dt="rider" value="${esc(t.rider || '')}"></label>` : '')}` : ''}
+    <label for="dt_note">Notes<input id="dt_note" data-dt="note" value="${esc(t.note || '')}" placeholder="Anything to remember"></label>
+    <div class="form-end">
+      ${riding ? `<button type="button" class="primary huge" id="dDrop">Dropped off</button>`
+        : `<button type="button" class="primary big" id="dSave">${mode === 'new' ? 'Save trip' : 'Done'}</button>`}
+      ${mode === 'new' ? `<button type="button" class="link" id="dCancelNew">Cancel</button>`
+        : `<button type="button" class="link" id="dVoid">${pendingVoid === t.id ? 'Press again to remove this trip' : riding ? 'Cancel this trip' : 'Remove this trip'}</button>`}
+    </div>
+  </div>`;
+}
+function startHtml() {
+  const last = dev.lastShiftId && data.shifts.find(s => s.id === dev.lastShiftId);
+  const lt = last ? sums(shiftTrips(last.id)) : null;
+  return `${last ? `<div class="card-soft"><b>Last shift: ${esc(niceDate(isoDate(last.startedAt)))}, ${lt.n} trips, ${money(lt.all)}</b>
+      ${sumsHtml(lt)}<div class="actions"><button type="button" data-dprint="${esc(last.id)}">Print trip record</button></div></div>` : ''}
+    <h2>Start a shift</h2>
+    <datalist id="dlDrivers">${pastValues('driver').map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>
+    <datalist id="dlVehicles">${pastValues('vehicle').map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>
+    <div class="fields">
+      <label for="dDriver">Driver<input id="dDriver" list="dlDrivers" value="${esc(dev.driver || '')}" placeholder="Your name" autocomplete="off"></label>
+      <label for="dVehicle">Vehicle<input id="dVehicle" list="dlVehicles" value="${esc(dev.vehicle || '')}" placeholder="e.g. White van" autocomplete="off"></label>
+      <label for="dStartKm">Start mileage (km)<input id="dStartKm" inputmode="numeric" placeholder="e.g. 184250"></label>
+    </div>
+    <button type="button" class="primary big" id="dStart">Start shift</button>`;
+}
+function myShiftHtml() {
+  const s = myShift();
+  if (!s) return startHtml();
+  const trips = shiftTrips(s.id), r = rideNow(), t = sums(trips);
+  return `<div class="shift-head"><div><small>On shift since ${hm(s.startedAt)}</small><b>${esc(s.driver)}${s.vehicle ? ' · ' + esc(s.vehicle) : ''}</b></div>
+      <span>${t.n} trip${t.n === 1 ? '' : 's'} · ${money(t.all)}</span></div>
+    ${r ? tripFormHtml(r, 'ride') : `
+      <button type="button" class="primary huge" id="dPickup">Picked someone up</button>
+      <button type="button" class="link" id="dForgot">Add a trip I forgot</button>`}
+    <h3>This shift</h3>
+    ${tripRows(trips.filter(x => x.status === 'done'), true)}
+    ${sumsHtml(t)}
+    <div class="end-shift">
+      ${pendingEnd ? `<label for="dEndKm">End mileage (km)<input id="dEndKm" inputmode="numeric" placeholder="e.g. 184410"></label>
+        <div class="actions"><button type="button" class="primary" id="dEndNow">End shift now</button><button type="button" id="dEndCancel">Not yet</button></div>`
+        : `<button type="button" id="dEnd">End shift</button>`}
+    </div>`;
+}
+function shiftCard(s) {
+  const trips = shiftTrips(s.id), t = sums(trips);
+  const km = s.endKm && s.startKm ? (Number(s.endKm) - Number(s.startKm)) + ' km' : '';
+  return `<div class="shift-card">
+    <div class="sc-head"><b>${esc(niceDate(isoDate(s.startedAt)))}</b><span>${hm(s.startedAt)}–${s.endedAt ? hm(s.endedAt) : 'now'}</span></div>
+    <div class="sc-who">${esc(s.driver || 'Driver')}${s.vehicle ? ' · ' + esc(s.vehicle) : ''}${km ? ' · ' + km : ''}${s.endedAt ? '' : ' <span class="live-dot">On shift</span>'}</div>
+    <div class="sc-sum">${t.n} trips · Cash ${money(t.cash)} · E-transfer ${money(t.etransfer)} · Tab ${money(t.tab)} · Account ${money(t.account)}</div>
+    <div class="actions"><button type="button" data-dshift="${esc(s.id)}">Open</button><button type="button" data-dprint="${esc(s.id)}">Print trip record</button></div>
+  </div>`;
+}
+function shiftsListHtml() {
+  const list = data.shifts.filter(s => !s.void).sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0)).slice(0, 80);
+  const week = Date.now() - 7 * 864e5;
+  const wk = sums(live(data.trips).filter(t => (t.pickupAt || 0) > week));
+  return `<h2 class="d-only">All shifts</h2>
+    <div class="card-soft"><b>Last 7 days: ${wk.n} trips, ${money(wk.all)}</b>${sumsHtml(wk)}</div>
+    ${list.length ? list.map(shiftCard).join('') : '<p class="empty">No shifts yet. They show up here as soon as a driver starts one.</p>'}`;
+}
+function shiftDetailHtml(id) {
+  const s = data.shifts.find(x => x.id === id); if (!s) return shiftsListHtml();
+  const trips = shiftTrips(id);
+  return `<button type="button" class="link back" id="dBack">‹ All shifts</button>
+    ${shiftCard(s).replace(/<div class="actions">[\s\S]*?<\/div>\s*<\/div>$/, '</div>')}
+    ${s.startKm || s.endKm ? `<p class="hint">Mileage: ${esc(s.startKm || '?')} → ${esc(s.endKm || '?')}</p>` : ''}
+    ${tripRows(trips, true)}
+    <div class="actions"><button type="button" class="primary" data-dprint="${esc(id)}">Print trip record</button>
+      ${!s.endedAt ? `<button type="button" id="dCloseShift" data-id="${esc(id)}">Mark this shift ended</button>` : ''}</div>`;
+}
+function owed(c) { return live(data.trips).filter(t => t.status === 'done' && t.customerId === c.id && (t.pay === 'tab' || t.pay === 'account') && !t.invoiceUid && !t.paidAt); }
+function moneyHtml() {
+  const tabs = tabCustomers().map(c => ({ c, trips: owed(c) })).filter(x => x.trips.length);
+  const accts = acctCustomers().map(c => ({ c, trips: owed(c) })).filter(x => x.trips.length);
+  const loose = live(data.trips).filter(t => t.status === 'done' && (t.pay === 'tab' || t.pay === 'account') && !t.customerId);
+  const row = ({ c, trips }, kind) => {
+    const total = trips.reduce((a, t) => a + cents(t.amount), 0);
+    const btn = kind === 'tab-pay'
+      ? (pendingPaid === c.id ? `<span class="paid-pick">Paid how?<button type="button" data-dpaid="${esc(c.id)}" data-how="cash">Cash</button><button type="button" data-dpaid="${esc(c.id)}" data-how="etransfer">E-transfer</button></span>`
+        : `<button type="button" data-dpaidask="${esc(c.id)}">Mark paid</button>`)
+      : `<button type="button" class="primary" data-dinvoice="${esc(c.id)}">Make invoice</button>`;
+    return `<div class="owe-row"><div><b>${esc(c.label)}</b><small>${trips.length} trip${trips.length === 1 ? '' : 's'} since ${esc(niceDate(trips.map(t => t.date).sort()[0]))}</small></div><b class="owe-amt">${money(total)}</b>${btn}</div>`;
+  };
+  return `<h2>Tabs</h2>
+    ${tabs.length ? tabs.map(x => row(x, kindOf(x.c))).join('') : '<p class="empty">Nobody owes on a tab right now.</p>'}
+    <h2>Ready to invoice</h2>
+    ${accts.length ? accts.map(x => row(x, 'account')).join('') : '<p class="empty">No account trips waiting. Trips drivers mark as "Account" show up here.</p>'}
+    ${loose.length ? `<h2>Needs a customer</h2><p class="hint">A driver typed a new name for these. Edit each one and pick the customer, or add them under Customers &amp; settings first.</p>${tripRows(loose, true)}` : ''}
+    <p class="hint">To make someone a tab customer, open Customers &amp; settings and change "How they pay".</p>`;
+}
+function renderDrive() {
+  const p = $('drivePanel');
+  p.hidden = !driveOpen;
+  if (!driveOpen) { stopTimer(); return; }
+  const owner = !isDriver();
+  const seg = owner && !driveEdit ? `<div class="seg" role="tablist">${[['shift', 'My shift'], ['shifts', 'All shifts'], ['money', 'Tabs & billing']]
+    .map(([k, l]) => `<button type="button" role="tab" data-dtab="${k}" aria-selected="${driveTab === k}">${l}</button>`).join('')}</div>` : '';
+  let body;
+  const ed = driveEdit && findTrip(driveEdit);
+  if (ed) body = `<button type="button" class="link back" id="dEditBack">‹ Back</button>` + tripFormHtml(ed, ed.status === 'draft' ? 'new' : 'edit');
+  else if (!owner || driveTab === 'shift') body = myShiftHtml();
+  else if (driveTab === 'shifts') body = driveShiftView ? shiftDetailHtml(driveShiftView) : shiftsListHtml();
+  else body = moneyHtml();
+  const old = $('driveMsg'), keep = old ? [old.innerHTML, old.className] : null;
+  p.innerHTML = seg + body + `<div class="status" id="driveMsg" role="status" aria-live="polite"></div>`;
+  if (keep && keep[0]) { $('driveMsg').innerHTML = keep[0]; $('driveMsg').className = keep[1]; }
+  startTimer();
+}
+let rideTick = null;
+function stopTimer() { clearInterval(rideTick); rideTick = null; }
+function startTimer() {
+  stopTimer();
+  const r = rideNow(); if (!r || !$('rideTimer')) return;
+  const draw = () => {
+    const el = $('rideTimer'); if (!el) { stopTimer(); return; }
+    const s = Math.max(0, Math.floor((Date.now() - r.pickupAt) / 1000)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60;
+    el.textContent = (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(s % 60).padStart(2, '0');
+  };
+  draw(); rideTick = setInterval(draw, 1000);
+}
+function dsay(t, bad) { const m = $('driveMsg'); if (m) { m.textContent = t; m.classList.toggle('bad', !!bad); } setStatus(t, bad); }
+function activeTrip() { const id = driveEdit || dev.tripId; return id ? findTrip(id) : null; }
+let dSaveTimer = null;
+function saveSoonDrive() { clearTimeout(dSaveTimer); dSaveTimer = setTimeout(() => { stamp(); store(); syncSoon(); }, 500); }
+function tripProblem(t) {
+  if (!(cents(t.amount) > 0)) return 'Type the amount first.';
+  if (!t.pay) return 'Pick how it was paid.';
+  if ((t.pay === 'tab' || t.pay === 'account') && !t.customerId && !(t.newName || '').trim()) return t.pay === 'tab' ? 'Pick whose tab it goes on.' : 'Pick which account it goes on.';
+  return '';
+}
+$('drivePanel').addEventListener('input', e => {
+  const t = activeTrip(); const el = e.target;
+  if (!t) return;
+  if (el.dataset.dt) { t[el.dataset.dt] = el.value; saveSoonDrive(); }
+  if (el.dataset.dtime) {
+    const date = $('dt_date') ? $('dt_date').value : t.date;
+    t.date = date || t.date;
+    t.pickupAt = joinDT(t.date, $('dt_pt') ? $('dt_pt').value : hhmm(t.pickupAt)) || t.pickupAt;
+    const d = joinDT(t.date, $('dt_dt') ? $('dt_dt').value : '');
+    t.dropoffAt = d ? (d < t.pickupAt ? d + 864e5 : d) : t.dropoffAt;
+    saveSoonDrive();
+  }
+});
+$('drivePanel').addEventListener('change', e => {
+  const t = activeTrip(); const el = e.target;
+  if (!t || !el.dataset.dsel) return;
+  const f = el.dataset.dsel, v = el.value;
+  if (f === 'customerId') {
+    if (v === '__new') { t.customerId = ''; t.newName = t.newName || ''; }
+    else { t.customerId = v; t.newName = null; t.rider = ''; t.riderNew = false; }
+  } else if (f === 'rider') {
+    if (v === '__new') { t.rider = ''; t.riderNew = true; }
+    else {
+      t.rider = v; t.riderNew = false;
+      const c = data.customers.find(x => x.id === t.customerId), cl = c && (c.clients || []).find(x => x.name === v);
+      if (cl) { if (!t.pickup && cl.pickup) t.pickup = cl.pickup; if (!t.dropoff && cl.dropoff) t.dropoff = cl.dropoff; if (!t.amount && cl.amount) t.amount = cl.amount; }
+    }
+  }
+  stamp(); store(); syncSoon(); renderDrive();
+});
+$('drivePanel').addEventListener('click', e => {
+  const el = e.target.closest('button'); if (!el) return;
+  const id = el.id, ds = el.dataset;
+  const t = activeTrip();
+  if (ds.dtab) { driveTab = ds.dtab; driveShiftView = null; pendingPaid = null; renderDrive(); return; }
+  if (ds.step && t) { t[ds.step] = Math.max(ds.step === 'people' ? 1 : 0, (Number(t[ds.step]) || (ds.step === 'people' ? 1 : 0)) + Number(ds.delta)); $('dt_' + ds.step).textContent = t[ds.step]; saveSoonDrive(); return; }
+  if (ds.dpay && t) { t.pay = ds.dpay; if (t.pay === 'cash' || t.pay === 'etransfer') { t.customerId = ''; t.newName = null; t.rider = ''; } else if (t.customerId && !data.customers.some(c => c.id === t.customerId && (t.pay === 'tab' ? kindOf(c).startsWith('tab') : !kindOf(c).startsWith('tab')))) t.customerId = ''; stamp(); store(); renderDrive(); return; }
+  if (ds.dplace && t) {
+    const f = ds.dplace;
+    openPlaces(allPlaces(), f === 'pickup' ? 'Picked up at' : 'Dropped off at', v => { t[f] = v; const inp = $('dt_' + f); if (inp) inp.value = v; stamp(); store(); syncSoon(); });
+    return;
+  }
+  if (id === 'dStart') {
+    const driver = $('dDriver').value.trim(), vehicle = $('dVehicle').value.trim(), startKm = $('dStartKm').value.trim();
+    if (!driver) { dsay('Type your name first.', true); $('dDriver').focus(); return; }
+    const s = { id: newId('s'), driver, vehicle, startKm, startedAt: Date.now(), endedAt: null };
+    data.shifts.push(s); dev.shiftId = s.id; dev.driver = driver; dev.vehicle = vehicle; saveDev();
+    save(); syncNow(); renderDrive(); dsay('Shift started. Have a good one.'); return;
+  }
+  if (id === 'dPickup') {
+    const s = myShift(); if (!s) return;
+    const tr = { id: newId('t'), shiftId: s.id, driver: s.driver, vehicle: s.vehicle, date: todayISO(), pickupAt: Date.now(), dropoffAt: null, status: 'riding', people: 1, stops: 0, pay: '', amount: '', pickup: '', dropoff: '', customerId: '', rider: '', note: '' };
+    data.trips.push(tr); dev.tripId = tr.id; saveDev(); save(); renderDrive(); return;
+  }
+  if (id === 'dDrop' && t) {
+    const bad = tripProblem(t); if (bad) { dsay(bad, true); return; }
+    t.dropoffAt = Date.now(); t.status = 'done'; dev.tripId = null; saveDev();
+    save(); syncNow(); renderDrive();
+    dsay(`Trip saved: ${money(cents(t.amount))} ${PAY[t.pay].toLowerCase()}, ${dur(t.pickupAt, t.dropoffAt)}.`); return;
+  }
+  if (id === 'dForgot') {
+    const s = myShift(); if (!s) return;
+    const now = Date.now();
+    const tr = { id: newId('t'), shiftId: s.id, driver: s.driver, vehicle: s.vehicle, date: todayISO(), pickupAt: now - 20 * 60000, dropoffAt: now, status: 'draft', people: 1, stops: 0, pay: '', amount: '', pickup: '', dropoff: '', customerId: '', rider: '', note: '' };
+    data.trips.push(tr); driveEdit = tr.id; stamp(); store(); renderDrive(); return;
+  }
+  if (ds.dedit) { driveEdit = ds.dedit; pendingVoid = null; renderDrive(); scrollTo({ top: 0 }); return; }
+  if (id === 'dSave' && t) {
+    const bad = tripProblem(t); if (bad) { dsay(bad, true); return; }
+    if (t.status === 'draft') t.status = 'done';
+    driveEdit = null; save(); syncNow(); renderDrive(); dsay('Trip saved.'); return;
+  }
+  if (id === 'dCancelNew' && t) { data.trips = data.trips.filter(x => x.id !== t.id); driveEdit = null; stamp(); store(); renderDrive(); return; }
+  if (id === 'dEditBack') {
+    if (t && t.status === 'draft') { data.trips = data.trips.filter(x => x.id !== t.id); stamp(); store(); }
+    driveEdit = null; pendingVoid = null; renderDrive(); return;
+  }
+  if (id === 'dVoid' && t) {
+    if (pendingVoid !== t.id) { pendingVoid = t.id; renderDrive(); return; }
+    t.void = true; pendingVoid = null; if (dev.tripId === t.id) { dev.tripId = null; saveDev(); }
+    driveEdit = null; save(); syncNow(); renderDrive(); dsay('Trip removed.'); return;
+  }
+  if (id === 'dEnd') { if (rideNow()) { dsay('Finish the trip you are on first (press Dropped off).', true); return; } pendingEnd = true; renderDrive(); const k = $('dEndKm'); if (k) k.focus(); return; }
+  if (id === 'dEndCancel') { pendingEnd = false; renderDrive(); return; }
+  if (id === 'dEndNow') {
+    const s = myShift(); if (!s) return;
+    s.endKm = $('dEndKm').value.trim(); s.endedAt = Date.now();
+    dev.lastShiftId = s.id; dev.shiftId = null; saveDev(); pendingEnd = false;
+    save(); syncNow(); renderDrive(); dsay('Shift ended. Totals are below, and you can print the trip record.'); return;
+  }
+  if (ds.dshift) { driveShiftView = ds.dshift; renderDrive(); scrollTo({ top: 0 }); return; }
+  if (id === 'dBack') { driveShiftView = null; renderDrive(); return; }
+  if (id === 'dCloseShift') { const s = data.shifts.find(x => x.id === el.dataset.id); if (s) { s.endedAt = Date.now(); save(); renderDrive(); } return; }
+  if (ds.dprint) {
+    const s = data.shifts.find(x => x.id === ds.dprint); if (!s) return;
+    printPages(filledRecordHtml(s), false, `Trip Record ${isoDate(s.startedAt)} ${s.driver || ''}`.trim(), 'driveMsg');
+    return;
+  }
+  if (ds.dpaidask) { pendingPaid = ds.dpaidask; renderDrive(); return; }
+  if (ds.dpaid) {
+    const c = data.customers.find(x => x.id === ds.dpaid); if (!c) return;
+    const list = owed(c), now = Date.now(), total = list.reduce((a, t2) => a + cents(t2.amount), 0);
+    list.forEach(t2 => { t2.paidAt = now; t2.paidBy = ds.how; });
+    pendingPaid = null; save(); syncNow(); renderDrive(); dsay(`${c.label}'s tab of ${money(total)} is marked paid (${PAY[ds.how].toLowerCase()}).`); return;
+  }
+  if (ds.dinvoice) { makeInvoiceFor(ds.dinvoice); return; }
+});
+
+/* ---------- Trips the drivers logged, going onto an invoice ---------- */
+function loggedFor(cid) {
+  const c = data.customers.find(x => x.id === cid); if (!c) return [];
+  return owed(c).filter(t => !cur.trips.some(x => x.logId === t.id)).sort((a, b) => (a.pickupAt || 0) - (b.pickupAt || 0));
+}
+function renderLoggedBanner() {
+  const box = $('loggedBanner'); if (!box) return;
+  const list = cur.customerId && cur.customerId !== ONCE ? loggedFor(cur.customerId) : [];
+  if (!list.length) { box.innerHTML = ''; return; }
+  const total = list.reduce((a, t) => a + cents(t.amount), 0);
+  box.innerHTML = `<div class="logged"><span><b>${list.length} logged trip${list.length === 1 ? '' : 's'}</b> for ${esc(cust().label)} not invoiced yet (${money(total)}).</span>
+    <button type="button" class="primary" id="btnAddLogged">Add ${list.length === 1 ? 'it' : 'them'}</button></div>`;
+}
+document.addEventListener('click', e => { if (e.target.id === 'btnAddLogged') addLogged(); });
+function addLogged() {
+  const c = cust(), list = loggedFor(cur.customerId); if (!list.length) return;
+  const mapped = list.map(t => {
+    const cl = (c.clients || []).find(x => x.name === t.rider);
+    return { date: t.date, client: t.rider || t.newName || '', member: (cl && cl.member) || '', ride: '', time: hm(t.pickupAt), pickup: t.pickup || '', dropoff: t.dropoff || '', amount: (cents(t.amount) / 100).toFixed(2), isNew: false, logId: t.id };
+  });
+  const blank = x => !x.logId && !cents(x.amount) && !x.pickup && !x.dropoff;
+  cur.trips = cur.trips.filter(x => !blank(x)).concat(mapped);
+  renderTrips(); renderPaper();
+  setStatus(`Added ${mapped.length} trip${mapped.length === 1 ? '' : 's'} the drivers logged.`);
+}
+function makeInvoiceFor(cid) {
+  newInvoice(cid); pickOpen = false;
+  go('invoice');
+  addLogged();
+  scrollTo({ top: 0 });
+}
+
+/* ---------- The filled-in Trip Record, same layout as her paper one ---------- */
+function filledRecordHtml(s) {
+  const trips = shiftTrips(s.id).filter(t => t.status === 'done');
+  const t = sums(trips);
+  const per = 22, pages = Math.max(1, Math.ceil(trips.length / per));
+  const cell = v => `<td class="fill">${esc(v)}</td>`;
+  const val = (v, w) => `<span class="fillv" style="min-width:${w}">${esc(v || '')}</span>`;
+  let html = '';
+  for (let pg = 0; pg < pages; pg++) {
+    const chunk = trips.slice(pg * per, pg * per + per);
+    const rows = chunk.map(x => `<tr>${cell(hm(x.pickupAt) + (x.dropoffAt ? '–' + hm(x.dropoffAt) : ''))}${cell(x.pickup)}${cell(x.dropoff)}${cell(x.people || '')}${cell(x.stops || '')}${cell(money(cents(x.amount)))}${cell(PAY[x.pay] + ((x.pay === 'tab' || x.pay === 'account') ? ' – ' + customerName(x) : ''))}${cell([x.rider, x.note].filter(Boolean).join('. '))}</tr>`).join('')
+      + blankRows(per - chunk.length, 8);
+    html += `<div class="sh port"><h1>Trip Record${pages > 1 ? ` <small>(page ${pg + 1} of ${pages})</small>` : ''}</h1>
+      <div class="meta"><span>Company: <b>Lori’s TAXI</b></span><span>Date: ${val(niceDate(isoDate(s.startedAt)), '1.3in')}</span><span>Driver: ${val(s.driver, '1.3in')}</span></div>
+      <div class="meta"><span>Vehicle: ${val(s.vehicle, '1.4in')}</span><span>Start mileage: ${val(s.startKm, '1.1in')}</span><span>End mileage: ${val(s.endKm, '1.1in')}</span></div>
+      <table style="margin-top:12px"><colgroup>${[9, 16, 16, 6, 6, 9, 15, 23].map(w => `<col style="width:${w}%">`).join('')}</colgroup>
+        <thead><tr>${['Time', 'Pick up location (EXACT)', 'Drop off location (EXACT)', '# of People', '# of stops', 'Received ($)', 'Payment type', 'Additional comments'].map(c => `<th>${c}</th>`).join('')}</tr></thead>
+        <tbody>${rows}</tbody></table>
+      ${pg === pages - 1 ? `<div class="foot"><span>TOTAL RECEIVED CASH ($): ${val(money(t.cash), '1.1in')}</span><span>SIGNATURE: ${line('1.4in')}</span>
+        <span>TOTAL RECEIVED E-TRANS($): ${val(money(t.etransfer), '1in')}</span><span>E-Transfer Email - Lori.home69@gmail.com</span>
+        <span>On tab: ${val(money(t.tab), '1in')}</span><span>On account: ${val(money(t.account), '1in')}</span></div>` : ''}
+    </div>`;
+  }
+  return html;
+}
+
 /* ---------- Phone layout: tab bar, bottom bar, action sheet, full-screen preview ---------- */
 const PHONE = matchMedia('(max-width: 700px)');
 let mView = 'invoice';
-function openSettings() {
-  if (document.body.classList.contains('m')) setView('settings');
-  else if (!settingsOpen) $('btnSettings').click();
-}
-const VIEW_TITLES = { invoice: 'Invoice', past: 'Past invoices', sheets: 'Trip sheets', settings: 'Settings' };
+function openSettings() { if (!settingsOpen) go('settings'); }
+const VIEW_TITLES = { invoice: 'Invoice', past: 'Past invoices', drive: 'Drive', sheets: 'Trip sheets', settings: 'Settings' };
+function homeView() { return isDriver() ? 'drive' : 'invoice'; }
+function go(v) { setView(v); }
 function setView(v) {
+  if (isDriver() && v !== 'settings') v = 'drive';
+  if (!document.body.classList.contains('m') && v === 'past') v = 'invoice';
   mView = v;
-  settingsOpen = v === 'settings'; sheetsOpen = v === 'sheets';
-  $('settingsPanel').hidden = !settingsOpen; $('sheetsPanel').hidden = !sheetsOpen;
-  $('btnSettings').textContent = settingsOpen ? 'Back to invoices' : 'Customers & settings';
+  settingsOpen = v === 'settings'; sheetsOpen = v === 'sheets'; driveOpen = v === 'drive';
   setPanels();
-  if (settingsOpen) renderSettings(); else if (sheetsOpen) renderSheets(); else renderAll();
+  if (settingsOpen) renderSettings(); else if (sheetsOpen) renderSheets(); else if (driveOpen) renderDrive(); else renderAll();
+  if (!driveOpen) stopTimer();
   document.body.dataset.view = v;
   $('mViewTitle').textContent = v === 'invoice' ? 'Invoice #' + cur.number : VIEW_TITLES[v];
   $('mTabs').querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-current', b.dataset.view === v ? 'page' : 'false'));
@@ -1919,8 +2440,8 @@ function applyPhone() {
   const sp = $('sharePanel');
   if (on && sp.parentElement !== $('mShareSlot')) $('mShareSlot').appendChild(sp);
   if (!on && sp.parentElement === $('mShareSlot')) $('mailPick').before(sp);
-  if (on) setView(settingsOpen ? 'settings' : sheetsOpen ? 'sheets' : mView);
-  else { delete document.body.dataset.view; closeSheet(); $('mPrev').hidden = true; renderAll(); }
+  setView(settingsOpen ? 'settings' : sheetsOpen ? 'sheets' : driveOpen ? 'drive' : (on ? mView : (mView === 'past' ? 'invoice' : mView)));
+  if (!on) { closeSheet(); $('mPrev').hidden = true; }
 }
 (PHONE.addEventListener ? PHONE.addEventListener('change', applyPhone) : PHONE.addListener(applyPhone));
 function closeSheet() { $('mSheet').hidden = true; document.body.classList.remove('sheet-open'); }
@@ -1959,6 +2480,7 @@ $('mPrevClose').addEventListener('click', () => { $('mPrev').hidden = true; });
 function renderAll() { if (document.body.classList.contains('m')) $('mViewTitle').textContent = mView === 'invoice' ? 'Invoice #' + cur.number : VIEW_TITLES[mView]; renderWho(); renderTrips(); renderPaper(); renderEmailBox(); renderHistory(); renderSyncChip(); }
 newInvoice();
 pickOpen = !data.customers.length;
+applyRole();
 applyPhone();
 if (!PHONE.matches) renderAll();
 syncNow();
