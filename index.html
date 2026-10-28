@@ -1908,7 +1908,7 @@ async function callSync(action, extra, useCfg) {
   const c = useCfg || cfg;
   const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 25000);
   try {
-    const res = await fetch(c.u, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action, key: c.k, data: { ...data, counter: 0 }, ...(extra || {}) }), signal: ctl.signal, redirect: 'follow' });
+    const res = await fetch(c.u, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action, key: c.k, device: deviceId(), data: { ...data, counter: 0 }, ...(extra || {}) }), signal: ctl.signal, redirect: 'follow' });
     const j = await res.json();
     if (!j.ok) throw new Error(j.error || 'failed');
     return j;
@@ -2061,6 +2061,7 @@ const DEV_KEY = 'loris-taxi-device';
 let dev = {};
 try { dev = JSON.parse(localStorage.getItem(DEV_KEY) || '{}') || {}; } catch (e) {}
 function saveDev() { try { localStorage.setItem(DEV_KEY, JSON.stringify(dev)); } catch (e) {} }
+function deviceId() { if (!dev.deviceId) { dev.deviceId = newId('d'); saveDev(); } return dev.deviceId; }
 let driveOpen = false, driveTab = 'shift', driveEdit = null, driveShiftView = null;
 let pendingEnd = false, pendingVoid = null, pendingPaid = null;
 function isDriver() { return !!(cfg && cfg.r === 'driver'); }
@@ -2451,7 +2452,7 @@ $('drivePanel').addEventListener('click', async e => {
     const driver = $('dDriver').value.trim(), vehicle = (other && !other.hidden ? other.value : $('dVehicle').value).trim(), startKm = $('dStartKm').value.trim();
     if (!driver) { dsay('Type your name first.', true); $('dDriver').focus(); return; }
     if (!vehicle) { dsay('Pick the vehicle first.', true); return; }
-    const s = { id: newId('s'), driver, vehicle, startKm, startedAt: Date.now(), endedAt: null };
+    const s = { id: newId('s'), device: deviceId(), driver, vehicle, startKm, startedAt: Date.now(), endedAt: null };
     data.shifts.push(s); dev.shiftId = s.id; dev.driver = driver; dev.vehicle = vehicle; saveDev();
     save(); syncNow(); renderDrive(); dsay('Shift started. Have a good one.'); return;
   }
