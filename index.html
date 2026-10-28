@@ -1703,7 +1703,7 @@ async function callSync(action, extra, useCfg) {
   const c = useCfg || cfg;
   const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 25000);
   try {
-    const res = await fetch(c.u, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action, key: c.k, data, ...(extra || {}) }), signal: ctl.signal, redirect: 'follow' });
+    const res = await fetch(c.u, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action, key: c.k, data: { ...data, counter: 0 }, ...(extra || {}) }), signal: ctl.signal, redirect: 'follow' });
     const j = await res.json();
     if (!j.ok) throw new Error(j.error || 'failed');
     return j;
@@ -1712,6 +1712,7 @@ async function callSync(action, extra, useCfg) {
 function adopt(server) {
   stamp();                                   // keep anything changed while the request was out
   data = upgrade(ltMerge(data, server));
+  data.counter = (server && server.counter) || 0;   // the shared sheet alone decides the highest number handed out
   takeSnap(); store();
   syncState.last = Date.now(); syncState.err = '';
   try { localStorage.setItem(CFG_KEY + '-last', String(syncState.last)); } catch (e) {}
