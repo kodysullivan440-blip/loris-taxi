@@ -260,6 +260,25 @@ body.driver .m-tabs [data-view="home"],body.driver .m-tabs [data-view="invoice"]
 body.m .m-tabs{grid-template-columns:repeat(5,1fr)}
 body.m #btnDrive{display:none}
 .combo{display:flex;gap:6px;align-items:stretch}
+/* ---------- schedule ---------- */
+.seg{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))!important}
+.sched-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sched-head b{font-size:19px}
+.sched-head button:not(.link){min-height:44px;min-width:48px;font-size:22px;padding:0}
+.sched-day{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.sched-day.today{border:2px solid var(--accent)}
+.sd-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sched-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;background:var(--bg);border-radius:10px}
+.sched-item small{display:block;color:var(--muted)}
+.sched-item .geo-flag{display:block}
+.sched-form{display:flex;flex-direction:column;gap:10px;border:2px solid var(--accent);border-radius:12px;padding:12px}
+.sched-mini{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.sched-mini>div{display:grid;grid-template-columns:minmax(80px,auto) minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 10px;background:var(--bg);border-radius:10px}
+.sched-mini small{grid-column:1/-1;color:var(--muted);order:5}
+@media (max-width:520px){.sched-mini>div{grid-template-columns:1fr auto}.sched-mini>div>span:nth-child(2){grid-column:1/-1;order:3}}
+.late{color:var(--warn);font-weight:700}
+.ok-txt{color:var(--ok);font-weight:700}
+.muted{color:var(--muted)}
 /* ---------- sign-in ---------- */
 #loginPanel{max-width:520px;margin:0 auto;width:100%;align-items:stretch;text-align:center}
 #loginPanel h2{font-size:24px;margin:4px 0}
@@ -1021,6 +1040,7 @@ function ltMerge(a, b) {
   out.shifts = ltById([a.shifts, b.shifts], gone);
   out.trips = ltById([a.trips, b.trips], gone);
   out.users = ltById([a.users, b.users], gone);
+  out.sched = ltById([a.sched, b.sched], gone);
   var hm = {};
   [a.history || [], b.history || []].forEach(function (list) {
     list.forEach(function (h) {
@@ -1066,7 +1086,7 @@ const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 
 const NOBODY = { id: '', label: '', cols: 'trip', hst: false, email: '', billTo: '', places: [], clients: [] };
 function blankData() {
-  return { v: 5, business: { ...clone(DEFAULTS.business), _t: 1 }, customers: clone(DEFAULTS.customers).map(c => ({ ...c, _t: 1 })), history: [], shifts: [], trips: [], users: [], gone: {}, counter: 0 };
+  return { v: 5, business: { ...clone(DEFAULTS.business), _t: 1 }, customers: clone(DEFAULTS.customers).map(c => ({ ...c, _t: 1 })), history: [], shifts: [], trips: [], users: [], sched: [], gone: {}, counter: 0 };
 }
 /* bring older saved data or older backups up to date */
 function upgrade(d) {
@@ -1079,6 +1099,7 @@ function upgrade(d) {
     shifts: (d.shifts || []).map(x => ({ ...x, _t: x._t || 1 })),
     trips: (d.trips || []).map(x => ({ ...x, _t: x._t || 1 })),
     users: (d.users || []).map(x => ({ ...x, _t: x._t || 1 })),
+    sched: (d.sched || []).map(x => ({ ...x, _t: x._t || 1 })),
     gone: d.gone || {},
     counter: d.counter || 0
   };
@@ -1093,7 +1114,7 @@ let data = load();
 /* Remember how everything looked at the last save, so a save can mark only what changed. */
 let snap = null;
 const strip = o => { const { _t, ...r } = o; return JSON.stringify(r); };
-const KEYED = ['customers', 'shifts', 'trips', 'users'];
+const KEYED = ['customers', 'shifts', 'trips', 'users', 'sched'];
 function takeSnap() {
   snap = { biz: strip(data.business), k: {}, hist: {} };
   KEYED.forEach(k => { snap.k[k] = {}; data[k].forEach(x => { snap.k[k][x.id] = strip(x); }); });
@@ -2373,10 +2394,13 @@ function tripFormHtml(t, mode) {
   </div>`;
 }
 function startHtml() {
+  const todays = session && mySched().find(x => x.date === todayISO() && x.vehicle);
+  if (todays && !dev.vehicle) dev.vehicle = todays.vehicle;
   const last = session ? data.shifts.filter(s => s.driverId === session.id && s.endedAt).sort((a, b) => b.endedAt - a.endedAt)[0] : (dev.lastShiftId && data.shifts.find(s => s.id === dev.lastShiftId));
   const lt = last ? sums(shiftTrips(last.id)) : null;
   return `${last ? `<div class="card-soft"><b>Last shift: ${esc(niceDate(isoDate(last.startedAt)))}, ${lt.n} trips, ${money(lt.all)}</b>
       ${sumsHtml(lt)}<div class="actions"><button type="button" data-dprint="${esc(last.id)}">Print trip record</button></div></div>` : ''}
+    ${upcomingHtml()}
     <h2>Start a shift</h2>
     <datalist id="dlDrivers">${pastValues('driver').map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>
     <datalist id="dlVehicles">${pastValues('vehicle').map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>
@@ -2552,13 +2576,14 @@ function renderDrive() {
   p.hidden = !driveOpen;
   if (!driveOpen) { stopTimer(); return; }
   const owner = !isDriver();
-  const seg = owner && !driveEdit ? `<div class="seg" role="tablist">${[['shift', 'My shift'], ['shifts', 'All shifts'], ['money', 'Tabs & billing']]
+  const seg = owner && !driveEdit ? `<div class="seg" role="tablist">${[['shift', 'My shift'], ['sched', 'Schedule'], ['shifts', 'All shifts'], ['money', 'Tabs & billing']]
     .map(([k, l]) => `<button type="button" role="tab" data-dtab="${k}" aria-selected="${driveTab === k}">${l}</button>`).join('')}</div>` : '';
   let body;
   const ed = driveEdit && findTrip(driveEdit);
   if (ed) body = `<button type="button" class="link back" id="dEditBack">‹ Back</button>` + tripFormHtml(ed, ed.status === 'draft' ? 'new' : 'edit');
   else if (!owner || driveTab === 'shift') body = myShiftHtml();
   else if (driveTab === 'shifts') body = driveShiftView ? shiftDetailHtml(driveShiftView) : shiftsListHtml();
+  else if (driveTab === 'sched') body = schedHtml();
   else body = moneyHtml();
   const old = $('driveMsg'), keep = old ? [old.innerHTML, old.className] : null;
   p.innerHTML = seg + body + `<div class="status" id="driveMsg" role="status" aria-live="polite"></div>`;
@@ -2784,6 +2809,124 @@ function filledRecordHtml(s) {
   return html;
 }
 
+/* ---------- Schedule: who's working when (Lori and Raymond edit it) ---------- */
+let schedWeek = null, schedEdit = null, pendingDelSched = null;
+function addDays(iso, n) { const p = parts(iso); return isoDate(new Date(p.y, p.m - 1, p.d + n).getTime()); }
+function mondayOf(iso) { const p = parts(iso), d = new Date(p.y, p.m - 1, p.d); return addDays(iso, -((d.getDay() + 6) % 7)); }
+const userName = id => (data.users.find(u => u.id === id) || {}).name || (session && session.id === id ? session.name : 'Someone');
+function fmtT(hhmm) { if (!hhmm) return ''; const [h, m] = hhmm.split(':').map(Number); return (((h + 11) % 12) + 1) + (m ? ':' + String(m).padStart(2, '0') : '') + (h >= 12 ? ' pm' : ' am'); }
+const span = x => `${fmtT(x.start)}–${fmtT(x.end)}`;
+function schedFor(date) { return (data.sched || []).filter(x => x.date === date && !x.void).sort((a, b) => (a.start || '').localeCompare(b.start || '')); }
+function mySched() { return session ? (data.sched || []).filter(x => x.userId === session.id && !x.void && x.date >= todayISO()).sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start)) : []; }
+function mins(t) { const [h, m] = (t || '0:0').split(':').map(Number); return h * 60 + m; }
+function rangeOf(x) { const a = mins(x.start), b = mins(x.end); return [a, b <= a ? b + 1440 : b]; }
+function clashes(x) {
+  const [a1, a2] = rangeOf(x), out = [];
+  schedFor(x.date).forEach(y => {
+    if (y.id === x.id) return;
+    const [b1, b2] = rangeOf(y);
+    if (a1 < b2 && b1 < a2) {
+      if (y.userId === x.userId) out.push(`${userName(x.userId)} is already on ${span(y)}`);
+      else if (x.vehicle && y.vehicle === x.vehicle) out.push(`the ${x.vehicle} is already out with ${userName(y.userId)} ${span(y)}`);
+    }
+  });
+  return out;
+}
+function upcomingHtml() {
+  const list = mySched().slice(0, 6);
+  if (!session) return '';
+  return `<div class="card-soft"><b>Your upcoming shifts</b>${list.length ? `<div class="sched-mini">${list.map(x => `<div><b>${esc(x.date === todayISO() ? 'Today' : niceDate(x.date))}</b><span>${span(x)}${x.vehicle ? ' · ' + esc(x.vehicle) : ''}</span>${x.note ? `<small>${esc(x.note)}</small>` : ''}</div>`).join('')}</div>` : '<span>Nothing scheduled yet.</span>'}</div>`;
+}
+function todaySchedHtml() {
+  const list = schedFor(todayISO());
+  if (!list.length) return '<p class="empty">Nobody is scheduled today. Add shifts under Drive → Schedule.</p>';
+  const now = new Date(), nowM = now.getHours() * 60 + now.getMinutes();
+  return `<div class="sched-mini">${list.map(x => {
+    const real = data.shifts.filter(s => s.driverId === x.userId && !s.void && isoDate(s.startedAt) === x.date).sort((a, b) => b.startedAt - a.startedAt)[0];
+    const st = real ? (real.endedAt ? `<span class="ok-txt">Finished ${hm(real.endedAt)}</span>` : `<span class="live-dot">On shift since ${hm(real.startedAt)}</span>`)
+      : (nowM > rangeOf(x)[1] ? '<span class="late">No shift logged</span>' : nowM > mins(x.start) + 10 ? '<span class="late">Not started yet</span>' : `<span class="muted">Starts ${fmtT(x.start)}</span>`);
+    return `<div><b>${esc(userName(x.userId))}</b><span>${span(x)}${x.vehicle ? ' · ' + esc(x.vehicle) : ''}</span>${st}</div>`;
+  }).join('')}</div>`;
+}
+function schedFormHtml(x, isNew) {
+  const ppl = data.users.filter(u => !u.removed);
+  return `<div class="sched-form" data-sid="${esc(x.id)}">
+    ${ppl.length ? '' : '<p class="hint">Add people under Customers &amp; settings → People who sign in first.</p>'}
+    <div class="fields">
+      <label for="sfWho">Who<select id="sfWho"><option value="">Pick…</option>${ppl.map(u => `<option value="${esc(u.id)}"${u.id === x.userId ? ' selected' : ''}>${esc(u.name)}</option>`).join('')}</select></label>
+      <label for="sfStart">Starts<input id="sfStart" type="time" value="${esc(x.start || '08:00')}"></label>
+      <label for="sfEnd">Ends<input id="sfEnd" type="time" value="${esc(x.end || '16:00')}"></label>
+    </div>
+    <div class="veh-pick"><span>Car</span><div class="veh-btns">
+      ${vehicles().map(v => `<button type="button" data-sveh="${esc(v)}" aria-pressed="${v === x.vehicle}">${esc(v)}</button>`).join('')}
+      <button type="button" data-sveh="" aria-pressed="${!x.vehicle}">Not set</button></div></div>
+    <label for="sfNote">Note<input id="sfNote" value="${esc(x.note || '')}" placeholder="e.g. On call after 10 pm"></label>
+    ${isNew ? `<label for="sfRepeat">Repeat<select id="sfRepeat"><option value="1">Just this day</option><option value="4">Same day every week, 4 weeks</option><option value="8">Same day every week, 8 weeks</option></select></label>` : ''}
+    <div class="actions"><button type="button" class="primary" id="schedSave">Save shift</button><button type="button" id="schedCancel">Cancel</button>
+      ${isNew ? '' : `<button type="button" id="schedDel">${pendingDelSched === x.id ? 'Press again to delete' : 'Delete'}</button>`}</div>
+  </div>`;
+}
+function schedHtml() {
+  if (!schedWeek) schedWeek = mondayOf(todayISO());
+  const days = [...Array(7)].map((_, i) => addDays(schedWeek, i));
+  return `<div class="sched-head"><button type="button" data-sw="-7" aria-label="Previous week">‹</button>
+      <b>Week of ${esc(niceDate(schedWeek))}</b><button type="button" data-sw="7" aria-label="Next week">›</button>
+      ${schedWeek !== mondayOf(todayISO()) ? '<button type="button" class="link" data-sw="0">This week</button>' : ''}</div>
+    <div class="actions"><button type="button" id="schedCopy">Copy last week into this week</button></div>
+    ${days.map(d => {
+      const list = schedFor(d), adding = schedEdit && schedEdit.startsWith('new:') && schedEdit.slice(4) === d;
+      return `<div class="sched-day${d === todayISO() ? ' today' : ''}">
+        <div class="sd-head"><b>${esc(niceDate(d))}${d === todayISO() ? ' · Today' : ''}</b>${adding ? '' : `<button type="button" class="small" data-sadd="${d}">+ Add shift</button>`}</div>
+        ${list.map(x => schedEdit === x.id ? schedFormHtml(x, false) : `<div class="sched-item">
+          <div><b>${span(x)}</b> ${esc(userName(x.userId))}${x.vehicle ? ' · ' + esc(x.vehicle) : ''}${x.note ? `<small>${esc(x.note)}</small>` : ''}
+            ${clashes(x).map(c => `<span class="geo-flag">Clash: ${esc(c)}</span>`).join('')}</div>
+          <button type="button" class="small" data-sedit="${esc(x.id)}">Edit</button></div>`).join('') || (adding ? '' : '<p class="empty">Nobody scheduled.</p>')}
+        ${adding ? schedFormHtml({ id: 'new', date: d }, true) : ''}
+      </div>`;
+    }).join('')}`;
+}
+$('drivePanel').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || !driveOpen || driveTab !== 'sched' || isDriver()) return;
+  const ds = b.dataset;
+  if (ds.sw !== undefined) { schedWeek = ds.sw === '0' ? mondayOf(todayISO()) : addDays(schedWeek, Number(ds.sw)); schedEdit = null; renderDrive(); return; }
+  if (ds.sadd) { schedEdit = 'new:' + ds.sadd; pendingDelSched = null; renderDrive(); return; }
+  if (ds.sedit) { schedEdit = ds.sedit; pendingDelSched = null; renderDrive(); return; }
+  if (ds.sveh !== undefined) { b.parentElement.querySelectorAll('[data-sveh]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); return; }
+  if (b.id === 'schedCancel') { schedEdit = null; renderDrive(); return; }
+  if (b.id === 'schedDel') {
+    if (pendingDelSched !== schedEdit) { pendingDelSched = schedEdit; renderDrive(); return; }
+    const x = data.sched.find(y => y.id === schedEdit); if (x) x.void = true;
+    schedEdit = null; pendingDelSched = null; save(); syncNow(); renderDrive(); dsay('Shift deleted.'); return;
+  }
+  if (b.id === 'schedSave') {
+    const who = $('sfWho').value, start = $('sfStart').value, end = $('sfEnd').value, note = $('sfNote').value.trim();
+    const vb = $('drivePanel').querySelector('[data-sveh][aria-pressed="true"]'), vehicle = vb ? vb.dataset.sveh : '';
+    if (!who) { dsay('Pick who is working.', true); return; }
+    if (!start || !end) { dsay('Set the start and end times.', true); return; }
+    let saved;
+    if (schedEdit.startsWith('new:')) {
+      const d = schedEdit.slice(4), n = Number(($('sfRepeat') || {}).value || 1);
+      for (let k = 0; k < n; k++) data.sched.push(saved = { id: newId('h'), date: addDays(d, 7 * k), userId: who, start, end, vehicle, note });
+      if (n > 1) saved = null;
+    } else {
+      saved = data.sched.find(y => y.id === schedEdit);
+      Object.assign(saved, { userId: who, start, end, vehicle, note });
+    }
+    schedEdit = null; save(); syncNow(); renderDrive();
+    const c = saved ? clashes(saved) : [];
+    dsay(c.length ? 'Saved, but check this: ' + c.join('; ') + '.' : 'Shift saved.', c.length > 0); return;
+  }
+  if (b.id === 'schedCopy') {
+    let n = 0;
+    [...Array(7)].map((_, i) => addDays(schedWeek, i - 7)).forEach(d => schedFor(d).forEach(x => {
+      const nd = addDays(x.date, 7);
+      if (schedFor(nd).some(y => y.userId === x.userId && y.start === x.start)) return;
+      data.sched.push({ id: newId('h'), date: nd, userId: x.userId, start: x.start, end: x.end, vehicle: x.vehicle, note: x.note }); n++;
+    }));
+    save(); syncNow(); renderDrive(); dsay(n ? `Copied ${n} shift${n === 1 ? '' : 's'} from last week.` : 'Nothing to copy from last week.'); return;
+  }
+});
+
 /* ---------- Home: the front page of her business ---------- */
 let homeTick = null;
 function greeting() { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'; }
@@ -2827,6 +2970,7 @@ function renderHome() {
       <h2>${greeting()}, Lori</h2></div><span class="home-sync">${syncOn() ? 'Updates by itself' : 'Sync is off'}</span></div>
     <div class="home-grid">
       <section class="step home-live"><h3>Live now</h3>${liveHtml()}</section>
+      <section class="step"><h3>Today's schedule</h3>${todaySchedHtml()}</section>
       <section class="step"><h3>Today</h3><p class="big-num">${tt.n} ride${tt.n === 1 ? '' : 's'} · ${money(tt.all)}</p>${sumsHtml(tt)}</section>
     </div>
     <div class="quick">
@@ -2835,6 +2979,7 @@ function renderHome() {
       <button type="button" data-home="money"><b>Ready to invoice</b><small>${ready ? ready + ' customer' + (ready === 1 ? '' : 's') : 'All caught up'}</small></button>
       <button type="button" data-home="shifts"><b>All shifts</b><small>Every driver's trips</small></button>
       <button type="button" data-home="past"><b>Past invoices</b><small>${lastInv ? 'Last: #' + esc(lastInv.number) + ', ' + esc(lastInv.label) : 'None yet'}</small></button>
+      <button type="button" data-home="sched"><b>Schedule</b><small>${schedFor(todayISO()).length} shift${schedFor(todayISO()).length === 1 ? '' : 's'} today</small></button>
       <button type="button" data-home="sheets"><b>Trip sheets</b><small>Print blank sheets</small></button>
     </div>
     <section class="step"><h3>Recent rides</h3>${tripRows(recent, true)}</section>`;
@@ -2850,7 +2995,7 @@ $('homePanel').addEventListener('click', e => {
   const h = b.dataset.home;
   if (b.id === 'btnWelcome') { openSettings(); return; }
   if (h === 'new') { $('btnNew').click(); return; }
-  if (h === 'money' || h === 'shifts') { driveTab = h; driveShiftView = null; driveEdit = null; go('drive'); return; }
+  if (h === 'money' || h === 'shifts' || h === 'sched') { driveTab = h; driveShiftView = null; driveEdit = null; go('drive'); return; }
   if (h === 'past') { go(document.body.classList.contains('m') ? 'past' : 'invoice'); if (!document.body.classList.contains('m')) $('secPast').scrollIntoView({ block: 'start' }); return; }
   if (h === 'sheets') { go('sheets'); return; }
   if (b.dataset.dedit) { driveEdit = b.dataset.dedit; go('drive'); }
