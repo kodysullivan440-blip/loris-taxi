@@ -96,6 +96,102 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .addr code{font:700 16px var(--ui);word-break:break-all;user-select:all}
 #sheetStatus{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 body{padding-top:max(20px,env(safe-area-inset-top,0px))}
+/* ---------- phone layout (Apple-style: tab bar, grouped lists, bottom action bar) ---------- */
+.m-only,.m-bar,.m-tabs{display:none}
+body.m .m-only{display:inline}
+body.m .d-only{display:none!important}
+body.m #mCancel[hidden]{display:none!important}
+body.m{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px));padding-top:max(12px,env(safe-area-inset-top,0px));background:var(--bg)}
+body.m header.top{gap:8px;flex-wrap:nowrap}
+body.m header.top h1{font-size:26px;display:flex;flex-direction:column;gap:0;line-height:1.1}
+body.m header.top h1>span:first-child{font-size:14px;letter-spacing:.06em;text-transform:uppercase}
+body.m header.top h1 #mViewTitle{color:var(--fg)}
+body.m .toplinks{flex-wrap:nowrap;gap:6px;align-items:center}
+body.m #btnSheets,body.m #btnSettings{display:none}
+body.m #btnNew{font-size:14px;min-height:36px;padding:6px 12px;border-radius:999px}
+body.m #btnNew::before{content:"+ "}
+body.m .sync-chip{font-size:12px;min-height:32px;padding:4px 10px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.m .wrap{gap:14px}
+body.m .app{gap:14px}
+body.m .steps{gap:14px}
+body.m .step{border-radius:14px;padding:16px;gap:12px;border:0;box-shadow:0 1px 0 var(--line)}
+body.m .step h2{font-size:19px}
+body.m .num{width:28px;height:28px;font-size:15px}
+body.m .preview,body.m #secSend,body.m .how{display:none!important}
+body.m[data-view="invoice"] #secPast{display:none}
+body.m[data-view="past"] #secWho,body.m[data-view="past"] #secTrips,body.m[data-view="past"] #secSend{display:none}
+body.m[data-view="past"] #secPast{display:flex}
+/* customer list as one grouped list */
+body.m .who{display:flex;flex-direction:column;gap:0;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--panel)}
+body.m .who>button{border:0;border-bottom:1px solid var(--line);border-radius:0;min-height:56px;padding:10px 14px;justify-content:center;position:relative;padding-right:40px}
+body.m .who>button:last-child{border-bottom:0}
+body.m .who>button[aria-pressed="true"]{background:var(--soft)}
+body.m .who>button[aria-pressed="true"]::after{content:"✓";position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:20px}
+body.m .who>button small{font-size:13px}
+body.m .who .extra{border-style:solid}
+body.m #secWho.collapsed .sub{display:none}
+body.m #whoExtra:empty{display:none}
+.m-chosen{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;background:var(--soft);border-radius:12px;width:100%}
+.m-chosen small{display:block;font-size:13px;color:var(--muted)}
+.m-chosen b{font-size:19px}
+body.m .welcome{border:0}
+/* trips */
+body.m .trip{border-radius:12px;background:var(--bg);border:0}
+body.m .fields{grid-template-columns:1fr 1fr;gap:10px}
+body.m .fields .wide{grid-column:1/-1}
+body.m .fields label:only-child{grid-column:1/-1}
+body.m .totals-ui{display:none}
+body.m .meta-row label{flex:1 1 40%}
+/* past invoices as a list */
+body.m .hrow{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"a c" "b c";gap:2px 12px;padding:12px 0}
+body.m .hrow>b{grid-area:a;font-size:17px}
+body.m .hrow>span:nth-of-type(1){grid-area:b;color:var(--muted);font-size:15px}
+body.m .hrow .hd,body.m .hrow .ht{display:none}
+body.m .hrow>button{grid-area:c;align-self:center}
+/* bottom bar + tab bar */
+body.m .m-tabs{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;left:0;right:0;bottom:0;z-index:30;
+  background:color-mix(in srgb,var(--panel) 92%,transparent);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-top:1px solid var(--line);padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
+.m-tabs button{border:0;background:none;min-height:50px;padding:4px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;font:600 11px var(--ui);color:var(--muted);border-radius:8px}
+.m-tabs svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.m-tabs button[aria-current="page"]{color:var(--accent)}
+body.m[data-view="invoice"] .m-bar{display:flex}
+.m-bar{position:fixed;left:0;right:0;z-index:29;bottom:calc(63px + env(safe-area-inset-bottom,0px));gap:8px;align-items:center;
+  padding:10px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));
+  background:var(--panel);border-top:1px solid var(--line);box-shadow:0 -6px 18px rgba(0,0,0,.06)}
+.m-total{flex:1;display:flex;flex-direction:column;line-height:1.1}
+.m-total small{color:var(--muted);font-size:13px;font-weight:700}
+.m-total b{font-size:24px;font-variant-numeric:tabular-nums}
+.m-bar button{min-height:48px;padding:8px 16px;font-size:17px;border-radius:12px}
+.m-bar .primary{padding:8px 22px}
+/* action sheet */
+.m-sheet{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.35);display:flex;align-items:flex-end}
+.m-sheet-card{width:100%;display:flex;flex-direction:column;gap:8px;padding:10px max(10px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px));animation:up .22s ease-out}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+#mActions{display:flex;flex-direction:column;border-radius:14px;overflow:hidden;background:var(--panel)}
+#mActions:empty{display:none}
+.m-sheet-title{padding:12px 16px;text-align:center;font-size:14px;color:var(--muted);border-bottom:1px solid var(--line)}
+#mActions button{border:0;border-bottom:1px solid var(--line);border-radius:0;min-height:58px;font-size:20px;color:var(--accent);font-weight:600;background:var(--panel)}
+#mActions button:last-child{border-bottom:0}
+#mShareSlot .mailpick{border-radius:14px;border:0;background:var(--panel)}
+.m-cancel{border:0;border-radius:14px;min-height:58px;font-size:20px;font-weight:700;color:var(--accent);background:var(--panel)}
+body.sheet-open{overflow:hidden}
+/* full-screen preview */
+.m-preview{position:fixed;inset:0;z-index:60;background:#8e969d;display:flex;flex-direction:column}
+.m-prev-top{display:flex;justify-content:space-between;align-items:center;background:var(--panel);
+  padding:calc(8px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--line)}
+.m-prev-top b{font-size:17px}
+.m-prev-top button{border:0;background:none;color:var(--accent);font-weight:700;min-height:44px;padding:0 6px}
+.m-prev-body{flex:1;overflow:auto;padding:12px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+#mPrevBody{position:relative;margin:0 auto;box-shadow:0 2px 12px rgba(0,0,0,.3);overflow:hidden;background:#fff}
+#mPrevBody .paper{position:absolute;top:0;left:0}
+/* toast */
+.m-toast{position:fixed;left:16px;right:16px;z-index:70;bottom:calc(140px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);
+  padding:12px 16px;border-radius:12px;font-size:15px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.m-toast.bad{background:var(--warn);color:#fff}
+body.m .sheet-preview .sh{zoom:.4}
+body.m .sheet-list{grid-template-columns:1fr}
+@media (prefers-reduced-motion:reduce){.m-sheet-card{animation:none}}
 .banner{background:var(--soft);border:2px solid var(--accent);border-radius:10px;padding:14px 16px;font-size:17px}
 .mailpick{border:2px solid var(--accent);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--soft);font-size:17px}
 a.btn{display:flex;align-items:center;justify-content:center;text-decoration:none;text-align:center}
@@ -646,7 +742,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     <b>This is only a preview.</b> Printing and email don't work here. Save this file to the computer, then double-click it so it opens in Chrome or Edge.
   </div>
   <header class="top no-print">
-    <h1><span>Lori's Taxi</span> Invoices</h1>
+    <h1><span>Lori's Taxi</span> <span class="d-only">Invoices</span><span class="m-only" id="mViewTitle">Invoice</span></h1>
     <div class="toplinks">
       <button class="small" id="btnNew" type="button">Start a new invoice</button>
       <button class="small" id="btnSheets" type="button">Trip sheets</button>
@@ -660,7 +756,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
   <div class="app" id="mainApp">
     <div class="steps no-print">
-      <section class="step">
+      <section class="step" id="secWho">
         <h2><span class="num">1</span>Who are you billing?</h2>
         <div class="who" id="who"></div>
         <p class="sub">Someone who isn't on the list?</p>
@@ -669,7 +765,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         <div class="status" id="whoStatus" role="status" aria-live="polite"></div>
       </section>
 
-      <section class="step">
+      <section class="step" id="secTrips">
         <h2><span class="num">2</span>Add the trips</h2>
         <div class="meta-row">
           <label for="invNumber">Invoice number
@@ -683,7 +779,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         <div class="totals-ui" id="totalsUi"></div>
       </section>
 
-      <section class="step">
+      <section class="step" id="secSend">
         <h2><span class="num">3</span>Print or email</h2>
         <div class="actions">
           <button type="button" class="primary" id="btnPrint">Print</button>
@@ -705,9 +801,9 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         <div class="status" id="status" role="status" aria-live="polite"></div>
       </section>
 
-      <section class="step">
-        <h2>Past invoices</h2>
-        <p class="hint">Invoices are kept here once you print or email them. Press Open to reprint one.</p>
+      <section class="step" id="secPast">
+        <h2 class="d-only">Past invoices</h2>
+        <p class="hint d-only">Invoices are kept here once you print or email them. Press Open to reprint one.</p>
         <div class="history" id="history"></div>
       </section>
     </div>
@@ -719,6 +815,24 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   </div>
 </div>
 
+<div class="m-bar no-print" id="mBar">
+  <div class="m-total"><small>Total</small><b id="mTotal">$0.00</b></div>
+  <button type="button" id="mPreview">Preview</button>
+  <button type="button" class="primary" id="mFinish">Finish</button>
+</div>
+<nav class="m-tabs no-print" id="mTabs" aria-label="Sections"><button type="button" data-view="invoice"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M10 12h5M10 16h5"/></svg><span>Invoice</span></button><button type="button" data-view="past"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span>Past</span></button><button type="button" data-view="sheets"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M4 14h16M10 4v16"/></svg><span>Trip sheets</span></button><button type="button" data-view="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg><span>Settings</span></button></nav>
+<div class="m-sheet no-print" id="mSheet" hidden>
+  <div class="m-sheet-card" role="dialog" aria-modal="true">
+    <div id="mActions"></div>
+    <div id="mShareSlot"></div>
+    <button type="button" class="m-cancel" id="mCancel">Cancel</button>
+  </div>
+</div>
+<div class="m-preview no-print" id="mPrev" hidden>
+  <div class="m-prev-top"><b>Preview</b><button type="button" id="mPrevClose">Done</button></div>
+  <div class="m-prev-body"><div id="mPrevBody"></div></div>
+</div>
+<div class="m-toast no-print" id="mToast" role="status" aria-live="polite" hidden></div>
 <div id="sheetPrint"></div>
 <input type="file" id="restoreFile" accept="application/json,.json" hidden>
 
@@ -882,10 +996,27 @@ function totals() {
   const hst = c && c.hst ? Math.round(sub * (Number(data.business.rate) || 0) / 100) : 0;
   return { sub, hst, total: sub + hst, hasHst: !!(c && c.hst) };
 }
-function setStatus(msg, bad) { const s = $('status'); s.textContent = msg; s.classList.toggle('bad', !!bad); }
+let toastTimer = null;
+function setStatus(msg, bad) {
+  const s = $('status'); s.textContent = msg; s.classList.toggle('bad', !!bad);
+  if (!document.body.classList.contains('m')) return;
+  const t = $('mToast');
+  if (!msg || /…$/.test(msg) && !bad) { if (!msg) t.hidden = true; else { t.textContent = msg; t.className = 'm-toast no-print'; t.hidden = false; } return; }
+  t.textContent = msg; t.className = 'm-toast no-print' + (bad ? ' bad' : ''); t.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, bad ? 6000 : 4500);
+}
 
 /* ---------- Step 1 ---------- */
+let pickOpen = true;
 function renderWho() {
+  const chosen = cur.customerId === ONCE ? (cur.once && cur.once.isNew ? 'New customer' : 'One-time bill') : (data.customers.find(c => c.id === cur.customerId) || {}).label;
+  const collapse = document.body.classList.contains('m') && !pickOpen && !!chosen;
+  $('secWho').classList.toggle('collapsed', collapse);
+  if (collapse) {
+    $('who').innerHTML = `<div class="m-chosen"><div><small>Billing</small><b>${esc(chosen)}</b></div><button type="button" class="small" id="mChange">Change</button></div>`;
+    $('whoExtra').innerHTML = '';
+    renderOnce(); return;
+  }
   if (!data.customers.length) {
     $('who').innerHTML = `<div class="welcome"><b>No customers on this device yet.</b>
       <span>If her other phone or computer is already set up, open Settings and paste the setup code. Everything comes over by itself. You can also restore a backup there, or add customers below.</span>
@@ -989,13 +1120,15 @@ $('onceForm').addEventListener('click', e => {
   renderAll(); whoSay(`Saved. ${c.label} is now on your list.`);
 });
 function whoClick(e) {
-  if (e.target.id === 'btnWelcome') { $('btnSettings').click(); return; }
+  if (e.target.id === 'btnWelcome') { openSettings(); return; }
+  if (e.target.id === 'mChange') { pickOpen = true; renderWho(); return; }
+  if (e.target.closest('button[data-id],button[data-once],button[data-new]')) pickOpen = false;
   const x = e.target.closest('button[data-once],button[data-new]');
   if (x) {
     const isNew = x.hasAttribute('data-new');
     if (cur.customerId !== ONCE || !cur.once || cur.once.isNew !== isNew) cur.once = { ...blankOnce(), isNew };
     cur.customerId = ONCE; whoSay('');
-    renderAll(); $('oName').focus(); return;
+    renderAll(); if (!document.body.classList.contains('m')) $('oName').focus(); return;
   }
   const b = e.target.closest('button[data-id]'); if (!b) return;
   cur.customerId = b.dataset.id; cur.once = null; whoSay('');
@@ -1054,6 +1187,7 @@ function renderTrips() {
 }
 function renderTotalsUi() {
   const t = totals();
+  $('mTotal').textContent = money(t.total);
   $('totalsUi').innerHTML = (t.hasHst ? `<span>Subtotal <b>${money(t.sub)}</b></span><span>HST <b>${money(t.hst)}</b></span>` : '') + `<span>Total <b>${money(t.total)}</b></span>`;
 }
 $('trips').addEventListener('input', e => {
@@ -1212,7 +1346,7 @@ const BASE_TITLE = document.title;
 let resetAfterPrint = false;
 function startFresh(doneNumber, how) {
   newInvoice(cur.customerId); renderAll();
-  $('sharePanel').hidden = true; $('mailPick').hidden = true;
+  $('sharePanel').hidden = true; $('mailPick').hidden = true; closeSheet();
   setStatus(`Invoice ${doneNumber} ${how} and kept in Past invoices. A new blank invoice (#${cur.number}) is ready.` + (lastNote ? ' ' + lastNote : ''));
   lastNote = '';
   scrollTo({ top: 0, behavior: 'smooth' });
@@ -1329,7 +1463,7 @@ function renderHistory() {
   const counts = {}; data.history.forEach(h => { counts[h.number] = (counts[h.number] || 0) + 1; });
   const list = data.history.slice().sort((a, b) => (Number(b.number) || 0) - (Number(a.number) || 0)).slice(0, 80);
   $('history').innerHTML = list.length ? list.map(h => `
-    <div class="hrow"><b>#${esc(h.number)}</b><span>${esc(h.label)}${counts[h.number] > 1 ? '<span class="dup">Two invoices have this number. Open one and change its number.</span>' : ''}</span><span class="hd">${esc(fmtInvDate(h.date))}</span><span class="ht">${money(h.total)}</span><button type="button" class="small" data-open="${esc(h.uid)}">Open to reprint</button></div>`).join('')
+    <div class="hrow"><b>#${esc(h.number)}</b><span>${esc(h.label)}${counts[h.number] > 1 ? '<span class="dup">Two invoices have this number. Open one and change its number.</span>' : ''}</span><span class="hd">${esc(fmtInvDate(h.date))}</span><span class="ht">${money(h.total)}</span><button type="button" class="small" data-open="${esc(h.uid)}">${document.body.classList.contains('m') ? 'Open' : 'Open to reprint'}</button></div>`).join('')
     : `<p class="empty">Nothing yet. Your first invoice will be #${nextNumber()}.</p>`;
 }
 $('history').addEventListener('click', e => {
@@ -1337,7 +1471,8 @@ $('history').addEventListener('click', e => {
   const h = data.history.find(x => x.uid === b.dataset.open); if (!h) return;
   cur = { uid: h.uid, offline: !!h.offline, customerId: h.customerId, number: h.number, date: h.date, trips: clone(h.trips), once: h.once ? { ...clone(h.once), isNew: false } : null };
   if (cur.customerId !== ONCE && !data.customers.find(c => c.id === cur.customerId)) setStatus('That customer was deleted, so the address may not match.', true);
-  renderAll(); $('mailPick').hidden = true; $('sharePanel').hidden = true; setStatus(`Invoice #${h.number} is open. Press Print, Save PDF or Email it.`); $('btnPrint').scrollIntoView({ block: 'center', behavior: 'smooth' });
+  renderAll(); $('mailPick').hidden = true; $('sharePanel').hidden = true; setStatus(`Invoice #${h.number} is open. Press Print, Save PDF or Email it.`);
+  if (document.body.classList.contains('m')) { pickOpen = false; setView('invoice'); } else $('btnPrint').scrollIntoView({ block: 'center', behavior: 'smooth' });
 });
 $('btnNew').addEventListener('click', () => { $('mailPick').hidden = true; $('sharePanel').hidden = true; newInvoice(cur.customerId); renderAll(); setStatus(`New invoice #${cur.number} ready.`); });
 
@@ -1500,7 +1635,7 @@ function renderSheets() {
     <label for="schoolPick">Which school?<select id="schoolPick">${SCHOOLS.map(x => `<option${x === schoolSel ? ' selected' : ''}>${esc(x)}</option>`).join('')}<option value="__other"${SCHOOLS.includes(schoolSel) ? '' : ' selected'}>Another school…</option></select></label>
     ${SCHOOLS.includes(schoolSel) ? '' : `<label for="schoolOther">School name<input id="schoolOther" value="${esc(schoolSel === '__other' ? '' : schoolSel)}" placeholder="e.g. Listowel Central Public School"></label>`}` : '';
   p.innerHTML = `
-    <h2>Trip sheets</h2>
+    <h2 class="d-only">Trip sheets</h2>
     <p class="hint">Pick a sheet, then press Print. To print more than one, change "Copies" in the print ${SHARE_MODE ? 'options' : 'box'}.</p>
     <div class="sheet-list">${SHEETS.map(x => `<button type="button" data-sheet="${x.id}" aria-pressed="${x.id === sheetSel}">${x.name}<small>${x.sub}</small></button>`).join('')}</div>
     ${schoolPick}
@@ -1630,10 +1765,11 @@ function renderSyncChip() {
   else if (syncState.busy) { txt = 'Syncing…'; }
   else if (syncState.err) { txt = 'Not synced: ' + syncState.err; cls = 'bad'; }
   else { txt = 'Synced ' + ago(syncState.last); cls = 'ok'; }
+  if (document.body.classList.contains('m')) txt = !syncOn() ? 'Sync off' : syncState.busy ? 'Syncing…' : syncState.err ? 'Not synced' : 'Synced';
   c.textContent = txt; c.className = 'sync-chip ' + cls;
 }
 $('syncChip').addEventListener('click', () => {
-  if (!settingsOpen) $('btnSettings').click();
+  openSettings();
   const h = $('syncHead'); if (h) h.scrollIntoView({ block: 'start', behavior: 'smooth' });
   if (syncOn()) syncNow();
 });
@@ -1697,9 +1833,76 @@ window.addEventListener('online', () => syncNow());
 setInterval(() => { if (document.visibilityState === 'visible') { if (Date.now() - syncState.last > 5 * 60000) syncNow(); else renderSyncChip(); } }, 60000);
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 
-function renderAll() { renderWho(); renderTrips(); renderPaper(); renderEmailBox(); renderHistory(); renderSyncChip(); }
+/* ---------- Phone layout: tab bar, bottom bar, action sheet, full-screen preview ---------- */
+const PHONE = matchMedia('(max-width: 700px)');
+let mView = 'invoice';
+function openSettings() {
+  if (document.body.classList.contains('m')) setView('settings');
+  else if (!settingsOpen) $('btnSettings').click();
+}
+const VIEW_TITLES = { invoice: 'Invoice', past: 'Past invoices', sheets: 'Trip sheets', settings: 'Settings' };
+function setView(v) {
+  mView = v;
+  settingsOpen = v === 'settings'; sheetsOpen = v === 'sheets';
+  $('settingsPanel').hidden = !settingsOpen; $('sheetsPanel').hidden = !sheetsOpen;
+  $('btnSettings').textContent = settingsOpen ? 'Back to invoices' : 'Customers & settings';
+  setPanels();
+  if (settingsOpen) renderSettings(); else if (sheetsOpen) renderSheets(); else renderAll();
+  document.body.dataset.view = v;
+  $('mViewTitle').textContent = v === 'invoice' ? 'Invoice #' + cur.number : VIEW_TITLES[v];
+  $('mTabs').querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-current', b.dataset.view === v ? 'page' : 'false'));
+  scrollTo({ top: 0 });
+}
+$('mTabs').addEventListener('click', e => { const b = e.target.closest('[data-view]'); if (b) setView(b.dataset.view); });
+function applyPhone() {
+  const on = PHONE.matches;
+  document.body.classList.toggle('m', on);
+  $('btnNew').textContent = on ? 'New' : 'Start a new invoice';
+  const sp = $('sharePanel');
+  if (on && sp.parentElement !== $('mShareSlot')) $('mShareSlot').appendChild(sp);
+  if (!on && sp.parentElement === $('mShareSlot')) $('mailPick').before(sp);
+  if (on) setView(settingsOpen ? 'settings' : sheetsOpen ? 'sheets' : mView);
+  else { delete document.body.dataset.view; closeSheet(); $('mPrev').hidden = true; renderAll(); }
+}
+(PHONE.addEventListener ? PHONE.addEventListener('change', applyPhone) : PHONE.addListener(applyPhone));
+function closeSheet() { $('mSheet').hidden = true; document.body.classList.remove('sheet-open'); }
+function openFinish() {
+  if (!ready()) return;
+  $('mActions').hidden = false; $('sharePanel').hidden = true;
+  $('mActions').innerHTML = `<div class="m-sheet-title">Invoice ${esc(cur.number)} · ${esc(cust().label)} · ${money(totals().total)}</div>
+    <button type="button" data-act="btnPrint">Print</button>
+    <button type="button" data-act="btnPdf">Save PDF</button>
+    <button type="button" data-act="btnEmail">Email</button>`;
+  $('mSheet').hidden = false; document.body.classList.add('sheet-open');
+}
+$('mFinish').addEventListener('click', openFinish);
+$('mActions').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  $('mActions').innerHTML = '<div class="m-sheet-title">Getting it ready…</div>';
+  $(b.dataset.act).click();
+  if (!SHARE_MODE) setTimeout(closeSheet, 300);
+});
+$('mCancel').addEventListener('click', () => {
+  if (shareJob) { const n = shareJob.n; shareJob = null; startFresh(n, 'is saved'); return; }
+  closeSheet();
+});
+$('mSheet').addEventListener('click', e => { if (e.target.id === 'mSheet' && !shareJob) closeSheet(); });
+/* while the share step shows, hide the three choices */
+new MutationObserver(() => { const showing = !$('sharePanel').hidden; if (showing) $('mActions').hidden = true; $('mCancel').hidden = showing; }).observe($('sharePanel'), { attributes: true, attributeFilter: ['hidden'] });
+$('mPreview').addEventListener('click', () => {
+  const clone = $('paper').cloneNode(true); clone.id = ''; clone.classList.add('capture');
+  const w = Math.min(innerWidth, 700) - 24, sc = w / 816;
+  const box = $('mPrevBody'); box.innerHTML = ''; box.style.width = w + 'px'; box.style.height = (1056 * sc) + 'px';
+  clone.style.transform = `scale(${sc})`; clone.style.transformOrigin = 'top left';
+  box.appendChild(clone); $('mPrev').hidden = false;
+});
+$('mPrevClose').addEventListener('click', () => { $('mPrev').hidden = true; });
+
+function renderAll() { if (document.body.classList.contains('m')) $('mViewTitle').textContent = mView === 'invoice' ? 'Invoice #' + cur.number : VIEW_TITLES[mView]; renderWho(); renderTrips(); renderPaper(); renderEmailBox(); renderHistory(); renderSyncChip(); }
 newInvoice();
-renderAll();
+pickOpen = !data.customers.length;
+applyPhone();
+if (!PHONE.matches) renderAll();
 syncNow();
 </script>
 </body>
