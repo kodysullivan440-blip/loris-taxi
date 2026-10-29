@@ -271,6 +271,11 @@ button.on{border-color:var(--accent);color:var(--accent);box-shadow:inset 0 0 0 
 .off-chip{display:inline-block;margin:0;padding:4px 10px;border-radius:999px;background:var(--bg);font-weight:600;font-size:14px}
 .off-chip small{font-weight:400;color:var(--muted)}
 .off-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
+.stops{display:flex;flex-direction:column;gap:8px}
+.stop-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center}
+.stop-time{font-weight:700;font-size:14px;white-space:nowrap}
+#dAddStop{min-height:52px;font-size:17px}
+@media (max-width:520px){.stop-row{grid-template-columns:1fr auto}.stop-row input{grid-column:1/-1;order:3}}
 .rate-rows{display:flex;flex-direction:column;gap:8px}
 .rate-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 110px auto;gap:8px;align-items:end}
 @media (max-width:520px){.rate-row{grid-template-columns:1fr 1fr}.rate-row label.money{grid-column:1}.rate-row button{align-self:center}}
@@ -2370,7 +2375,8 @@ function sumsHtml(t) {
 function customerName(t) { const c = data.customers.find(x => x.id === t.customerId); return c ? c.label : (t.newName ? t.newName + ' (new)' : ''); }
 function tripLine(t) {
   const who = (t.pay === 'tab' || t.pay === 'account') ? customerName(t) + (t.rider ? ' · ' + t.rider : '') : '';
-  return `${esc(t.pickup || '?')} → ${esc(t.dropoff || '?')}${who ? `<small>${esc(who)}</small>` : ''}`;
+  const via = (t.stopList || []).map(s => s.name).filter(Boolean);
+  return `${esc(t.pickup || '?')} → ${esc(t.dropoff || '?')}${via.length ? `<small>Stops: ${esc(via.join('; '))}</small>` : ''}${who ? `<small>${esc(who)}</small>` : ''}`;
 }
 function tripRows(trips, editable) {
   if (!trips.length) return '<p class="empty">No trips yet.</p>';
@@ -2412,6 +2418,7 @@ function tripFormHtml(t, mode) {
     </div>
     <p class="geo-note" id="geoNote">${t.pickupGeo ? `Pick-up spot saved (within ${t.pickupGeo.acc} m).` : t.noGeo ? 'Location is off, so this trip has no map spot.' : riding ? 'Saving the pick-up spot…' : ''}</p>
     <div class="steppers">${stepper('people', t.people || 1, 'People')}${stepper('stops', t.stops || 0, 'Stops')}</div>
+    ${stopsHtml(t, riding)}
     <label for="dt_amount" class="money">Amount<input id="dt_amount" data-dt="amount" inputmode="decimal" placeholder="0.00" value="${esc(t.amount || '')}"></label>
     <div class="fare-hint" id="fareHint">${fareHintHtml(t)}</div>
     <div class="pay-pick"><span>How was it paid?</span><div class="seg4">
@@ -2579,8 +2586,75 @@ function geoProblems(t) {
   });
   return out;
 }
-function finishDrop(t, confirmed) {
-  if (confirmed) t.geoWarn = geoProblems(t).join(' ');
+/* Where a typed address is on the map (looked up once, then remembered on this phone). */
+const GEOCODE_KEY = 'loris-taxi-geocode';
+const ROUGH = new Set(['city', 'town', 'village', 'hamlet', 'municipality', 'county', 'state', 'suburb', 'neighbourhood', 'quarter', 'locality', 'isolated_dwelling', 'region', 'postcode']);
+async function lookupPlace(text) {
+  const key = String(text || '').trim().toLowerCase(); if (key.length < 3) return null;
+  let cache = {}; try { cache = JSON.parse(localStorage.getItem(GEOCODE_KEY) || '{}'); } catch (e) {}
+  const hit = cache[key]; if (hit && Date.now() - hit.at < 60 * 864e5) return hit.r;
+  const q = /ontario|\bon\b/i.test(text) ? text : text + ', Ontario';
+  try {
+    const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 5000);
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=ca&viewbox=-81.9,44.3,-80.0,42.9&q=${encodeURIComponent(q)}`, { headers: { 'Accept-Language': 'en-CA' }, signal: ctl.signal });
+    clearTimeout(tm);
+    const j = await res.json(), f = j && j[0];
+    const r = f ? { lat: +(+f.lat).toFixed(6), lng: +(+f.lon).toFixed(6), rough: ROUGH.has(f.addresstype || f.type) || !/\d/.test(text) && f.class !== 'amenity' && f.class !== 'building' && f.class !== 'shop' } : null;
+    cache[key] = { at: Date.now(), r }; try { localStorage.setItem(GEOCODE_KEY, JSON.stringify(cache)); } catch (e) {}
+    return r;
+  } catch (e) { return null; }
+}
+/* At drop-off: is the phone near the places typed in? Uses earlier trips first, then the map. */
+async function geoCheck(t) {
+  const out = [];
+  for (const [f, g, label] of [['pickup', 'pickupGeo', 'Picked up at'], ['dropoff', 'dropoffGeo', 'Dropped off at']]) {
+    if (!t[f] || !t[g]) continue;
+    const known = knownSpot(t[f], t.id);
+    const target = known || await lookupPlace(t[f]);
+    if (!target) continue;
+    const allow = (target.rough ? 3000 : GEO_OK_M) + Math.min(t[g].acc || 0, 300);
+    const d = distM(target, t[g]);
+    if (d > allow) out.push(`${label} "${t[f]}": the phone was about ${fmtKm(d)} from ${known ? 'where that place usually is' : 'that address on the map'}.`);
+  }
+  return out;
+}
+let pendingProblems = [];
+/* A name for where the phone is: a saved place nearby, or the street address from the map. */
+async function placeName(g) {
+  let name = nearestKnown(g, 200);
+  if (name) return name;
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&addressdetails=1&lat=${g.lat}&lon=${g.lng}`, { headers: { 'Accept-Language': 'en-CA' } });
+    const j = await r.json(), a = j.address || {};
+    const street = [a.house_number, a.road].filter(Boolean).join(' ');
+    const town = a.town || a.village || a.city || a.hamlet || a.municipality || '';
+    name = [j.name && j.name !== a.road ? j.name : '', street, town].filter(Boolean).join(', ');
+  } catch (e) {}
+  return name || '';
+}
+/* Stops along the way: time, spot and place, recorded with one press. */
+function stopsHtml(t, riding) {
+  const list = t.stopList || [];
+  if (!riding && !list.length) return '';
+  return `<div class="stops">
+    ${list.map((st, i) => `<div class="stop-row"><span class="stop-time">Stop ${i + 1} · ${hm(st.at)}</span>
+      <input data-stopname="${i}" value="${esc(st.name || '')}" placeholder="Where was the stop?" aria-label="Stop ${i + 1} place">
+      <button type="button" class="small" data-stopdel="${i}" aria-label="Remove stop ${i + 1}">Remove</button></div>`).join('')}
+    ${riding ? `<button type="button" id="dAddStop">+ Add a stop here</button>` : ''}</div>`;
+}
+async function addStop(t, btn) {
+  btn.disabled = true; btn.textContent = 'Saving the stop…';
+  const st = { at: Date.now(), geo: null, name: '' };
+  t.stopList = t.stopList || []; t.stopList.push(st);
+  t.stops = (Number(t.stops) || 0) + 1;
+  stamp(); store();
+  const g = await getGeo();
+  if (g) { st.geo = g; st.name = await placeName(g); }
+  stamp(); store(); syncSoon(); renderDrive();
+  dsay(g ? `Stop ${t.stopList.length} saved${st.name ? ' at ' + st.name : ''}.` : `Stop ${t.stopList.length} saved. Location is off, so type where it was.`);
+}
+function finishDrop(t, problems) {
+  if (problems && problems.length) t.geoWarn = problems.join(' ');
   t.dropoffAt = t.dropTap || Date.now(); delete t.dropTap;
   t.status = 'done'; dev.tripId = null; saveDev();
   save(); syncNow(); renderDrive();
@@ -2592,29 +2666,21 @@ async function useHere(t, f) {
   const g = await getGeo();
   if (!g) { geoNote('Could not get your location. Check that Location is allowed for this app.'); return; }
   t[f + 'Geo'] = g;
-  let name = nearestKnown(g, 200);
-  if (!name) {
-    try {
-      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&addressdetails=1&lat=${g.lat}&lon=${g.lng}`, { headers: { 'Accept-Language': 'en-CA' } });
-      const j = await r.json(), a = j.address || {};
-      const street = [a.house_number, a.road].filter(Boolean).join(' ');
-      const town = a.town || a.village || a.city || a.hamlet || a.municipality || '';
-      name = [j.name && j.name !== a.road ? j.name : '', street, town].filter(Boolean).join(', ');
-    } catch (e) {}
-  }
+  const name = await placeName(g);
   if (!name) { geoNote('Got your location, but no address for it. Type the place.'); stamp(); store(); return; }
   t[f] = name; const inp = $('dt_' + f); if (inp) inp.value = name; refreshFare(t);
   stamp(); store(); syncSoon(); geoNote(`Filled in from your location (within ${g.acc} m).`);
 }
 const mapQ = g => `${g.lat},${g.lng}`;
 function mapLink(t) {
-  if (t.pickupGeo && t.dropoffGeo) return `https://www.google.com/maps/dir/?api=1&origin=${mapQ(t.pickupGeo)}&destination=${mapQ(t.dropoffGeo)}`;
+  const via = (t.stopList || []).filter(s => s.geo).map(s => mapQ(s.geo)).join('|');
+  if (t.pickupGeo && t.dropoffGeo) return `https://www.google.com/maps/dir/?api=1&origin=${mapQ(t.pickupGeo)}&destination=${mapQ(t.dropoffGeo)}${via ? '&waypoints=' + encodeURIComponent(via) : ''}`;
   const g = t.dropoffGeo || t.pickupGeo; return g ? `https://www.google.com/maps/search/?api=1&query=${mapQ(g)}` : '';
 }
 function lastSeen(shiftId) {
   let best = null;
   shiftTrips(shiftId).concat(data.trips.filter(t => t.shiftId === shiftId && t.status === 'riding')).forEach(t => {
-    [t.pickupGeo, t.dropoffGeo].forEach(g => { if (g && (!best || g.at > best.at)) best = g; });
+    [t.pickupGeo, t.dropoffGeo, ...(t.stopList || []).map(s => s.geo)].forEach(g => { if (g && (!best || g.at > best.at)) best = g; });
   });
   return best;
 }
@@ -2662,6 +2728,7 @@ function tripProblem(t) {
 $('drivePanel').addEventListener('input', e => {
   const t = activeTrip(); const el = e.target;
   if (!t) return;
+  if (el.dataset.stopname !== undefined) { const st = (t.stopList || [])[+el.dataset.stopname]; if (st) { st.name = el.value; saveSoonDrive(); } return; }
   if (el.dataset.dt) { t[el.dataset.dt] = el.value; saveSoonDrive(); if (el.dataset.dt === 'pickup' || el.dataset.dt === 'dropoff') refreshFare(t); }
   if (el.dataset.dtime) {
     const date = $('dt_date') ? $('dt_date').value : t.date;
@@ -2710,7 +2777,9 @@ $('drivePanel').addEventListener('click', async e => {
   }
   if (ds.dhere && t) { useHere(t, ds.dhere); return; }
   if (ds.dfare && t) { t.amount = ds.dfare; const a = $('dt_amount'); if (a) a.value = ds.dfare; saveSoonDrive(); refreshFare(t); return; }
-  if (id === 'dGeoOk' && t) { finishDrop(t, true); return; }
+  if (id === 'dGeoOk' && t) { finishDrop(t, pendingProblems); pendingProblems = []; return; }
+  if (id === 'dAddStop' && t) { addStop(t, el); return; }
+  if (ds.stopdel !== undefined && t) { (t.stopList || []).splice(+ds.stopdel, 1); t.stops = Math.max(0, (Number(t.stops) || 0) - 1); stamp(); store(); syncSoon(); renderDrive(); return; }
   if (id === 'dGeoFix') { const w = $('geoWarn'); if (w) w.remove(); dsay('Fix the place, then press Dropped off again.'); return; }
   if (id === 'dStart') {
     const other = $('dVehicleOther');
@@ -2739,8 +2808,10 @@ $('drivePanel').addEventListener('click', async e => {
     el.disabled = true; el.textContent = 'Checking location…';
     const g = await getGeo();
     if (g) t.dropoffGeo = g; else t.noGeo = true;
-    const problems = geoProblems(t);
+    el.textContent = 'Checking the address…';
+    const problems = await geoCheck(t);
     if (problems.length) {
+      pendingProblems = problems;
       el.disabled = false; el.textContent = 'Dropped off';
       const w = document.createElement('div'); w.className = 'geo-warn'; w.id = 'geoWarn';
       w.innerHTML = `<b>Check the places</b>${problems.map(x => `<span>${esc(x)}</span>`).join('')}
@@ -2749,7 +2820,7 @@ $('drivePanel').addEventListener('click', async e => {
       el.closest('.form-end').before(w);
       return;
     }
-    finishDrop(t, false); return;
+    finishDrop(t, null); return;
   }
   if (id === 'dForgot') {
     const s = myShift(); if (!s) return;
@@ -2843,7 +2914,7 @@ function filledRecordHtml(s) {
   let html = '';
   for (let pg = 0; pg < pages; pg++) {
     const chunk = trips.slice(pg * per, pg * per + per);
-    const rows = chunk.map(x => `<tr>${cell(hm(x.pickupAt) + (x.dropoffAt ? '–' + hm(x.dropoffAt) : ''))}${cell(x.pickup)}${cell(x.dropoff)}${cell(x.people || '')}${cell(x.stops || '')}${cell(money(cents(x.amount)))}${cell(PAY[x.pay] + ((x.pay === 'tab' || x.pay === 'account') ? ' – ' + customerName(x) : ''))}${cell([x.rider, x.note].filter(Boolean).join('. '))}</tr>`).join('')
+    const rows = chunk.map(x => `<tr>${cell(hm(x.pickupAt) + (x.dropoffAt ? '–' + hm(x.dropoffAt) : ''))}${cell(x.pickup)}${cell(x.dropoff)}${cell(x.people || '')}${cell(x.stops || '')}${cell(money(cents(x.amount)))}${cell(PAY[x.pay] + ((x.pay === 'tab' || x.pay === 'account') ? ' – ' + customerName(x) : ''))}${cell([x.rider, (x.stopList || []).length ? 'Stops: ' + x.stopList.map(s => s.name || hm(s.at)).join('; ') : '', x.note].filter(Boolean).join('. '))}</tr>`).join('')
       + blankRows(per - chunk.length, 8);
     html += `<div class="sh port"><h1>Trip Record${pages > 1 ? ` <small>(page ${pg + 1} of ${pages})</small>` : ''}</h1>
       <div class="meta"><span>Company: <b>Lori’s TAXI</b></span><span>Date: ${val(niceDate(isoDate(s.startedAt)), '1.3in')}</span><span>Driver: ${val(s.driver, '1.3in')}</span></div>
@@ -3259,7 +3330,7 @@ function liveHtml() {
     return `<div class="live-card ${ride ? 'riding' : ''}">
       <div class="lc-top"><b>${esc(s.driver || 'Driver')}</b><span>${esc(s.vehicle || '')}</span></div>
       ${ride ? `<div class="lc-ride"><span class="live-dot">On a ride</span><b class="lc-timer" data-since="${ride.pickupAt}">0:00</b></div>
-        <div class="lc-where">Picked up ${hm(ride.pickupAt)}${ride.pickup ? ' at ' + esc(ride.pickup) : ''}${ride.dropoff ? ' · going to ' + esc(ride.dropoff) : ''}</div>`
+        <div class="lc-where">Picked up ${hm(ride.pickupAt)}${ride.pickup ? ' at ' + esc(ride.pickup) : ''}${ride.dropoff ? ' · going to ' + esc(ride.dropoff) : ''}${(ride.stopList || []).length ? (st => ` · stopped at ${esc(st.name || 'a stop')} ${hm(st.at)}`)(ride.stopList[ride.stopList.length - 1]) : ''}</div>`
         : `<div class="lc-ride"><span class="avail">Available</span></div>
         <div class="lc-where">${lastDone ? 'Last drop-off ' + hm(lastDone.dropoffAt) + (lastDone.dropoff ? ' at ' + esc(lastDone.dropoff) : '') : 'No trips yet this shift'}</div>`}
       <div class="lc-sum">On shift since ${hm(s.startedAt)} · ${tt.n} trip${tt.n === 1 ? '' : 's'} · ${money(tt.all)}</div>
