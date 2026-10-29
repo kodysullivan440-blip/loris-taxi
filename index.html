@@ -262,6 +262,7 @@ body.m .m-tabs{grid-template-columns:repeat(5,1fr)}
 body.m #btnDrive{display:none}
 .combo{display:flex;gap:6px;align-items:stretch}
 /* ---------- fares, cash, time off, year summary ---------- */
+.steps-list{margin:6px 0;padding-left:22px}.steps-list li{margin:4px 0}
 .fare-hint{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-radius:10px;background:var(--bg);font-size:15px}
 .fare-hint:empty{display:none}
 .fare-btns{display:flex;gap:8px;flex-wrap:wrap}
@@ -1764,6 +1765,7 @@ function renderSettings() {
       <label for="sVeh">Vehicles (one per line)<textarea id="sVeh" data-b="vehiclesText" rows="3">${esc((b.vehicles || []).join('\n'))}</textarea></label>
     </div>
     <label for="sAddr">Address<textarea id="sAddr" data-b="address">${esc(b.address)}</textarea></label>
+    ${alertsHtml()}
     ${ratesHtml()}
     ${peopleHtml()}
     <h2>Customers</h2>
@@ -1805,6 +1807,7 @@ function renderSettings() {
 }
 $('settingsPanel').addEventListener('input', e => {
   const t = e.target;
+  if (t.dataset.alert) { data.business.alerts = { ...(data.business.alerts || {}), [t.dataset.alert]: t.checked }; save(); syncSoon(); return; }
   if (t.dataset.rate) { rates()[t.dataset.rate] = t.value; save(); return; }
   if (t.dataset.rrow !== undefined) { rates().list[+t.dataset.rrow][t.dataset.rf] = t.value; save(); return; }
   if (t.dataset.b === 'vehiclesText') data.business.vehicles = t.value.split('\n').map(x => x.trim()).filter(Boolean);
@@ -1840,6 +1843,8 @@ $('settingsPanel').addEventListener('click', e => {
     }
   }
   if (t.id === 'btnRestore') $('restoreFile').click();
+  if (t.id === 'aCopy') { const v = (cfg && cfg.at) || ''; navigator.clipboard.writeText(v).then(() => { $('aMsg').textContent = 'Copied. Paste it into the ntfy app.'; }).catch(() => { $('aMsg').textContent = 'Type this into the ntfy app: ' + v; }); return; }
+  if (t.id === 'aTest') { $('aMsg').textContent = 'Sending…'; callSync('testAlert').then(() => { $('aMsg').textContent = 'Sent. It should pop up on the phone in a few seconds.'; }).catch(err => { $('aMsg').textContent = 'Could not send: ' + errText(err) + '.'; }); return; }
   if (t.id === 'rAdd') { rates().list.push({ from: '', to: '', price: '' }); save(); renderSettings(); return; }
   if (t.dataset.rdel !== undefined) { rates().list.splice(+t.dataset.rdel, 1); save(); renderSettings(); return; }
   if (t.id === 'rPrint') { printPages(rateCardHtml(), false, "Lori's Taxi rate card", 'rMsg'); return; }
@@ -2182,6 +2187,7 @@ function noteRole(j) {
     if (j.me && session && (session.role !== j.me.role || session.name !== j.me.name)) { session.role = j.me.role; session.name = j.me.name; saveSession(); }
   }
   if (j.driverKey) cfg.dk = j.driverKey;
+  if (j.alertTopic) cfg.at = j.alertTopic;
   try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (e) {}
   applyRole();
 }
@@ -2793,12 +2799,18 @@ $('drivePanel').addEventListener('click', async e => {
   if (id === 'dPickup') {
     const s = myShift(); if (!s) return;
     const tr = { id: newId('t'), shiftId: s.id, driver: s.driver, vehicle: s.vehicle, date: todayISO(), pickupAt: Date.now(), dropoffAt: null, status: 'riding', people: 1, stops: 0, pay: '', amount: '', pickup: '', dropoff: '', customerId: '', rider: '', note: '' };
-    data.trips.push(tr); dev.tripId = tr.id; saveDev(); save(); renderDrive();
-    getGeo().then(g => {
-      if (!g) { tr.noGeo = true; geoNote('Location is off, so this trip has no map spot.'); return; }
+    data.trips.push(tr); dev.tripId = tr.id; saveDev(); stamp(); store(); renderDrive();
+    /* send it once the place is known, so Lori's alert says where (or after 10 seconds regardless) */
+    const fallback = setTimeout(syncNow, 10000);
+    getGeo().then(async g => {
+      if (!g) { tr.noGeo = true; geoNote('Location is off, so this trip has no map spot.'); clearTimeout(fallback); stamp(); store(); syncNow(); return; }
       tr.pickupGeo = g;
-      if (!tr.pickup) { const near = nearestKnown(g); if (near) { tr.pickup = near; const inp = $('dt_pickup'); if (inp && !inp.value) inp.value = near; refreshFare(tr); } }
-      stamp(); store(); syncSoon(); geoNote(`Pick-up spot saved (within ${g.acc} m).`);
+      if (!tr.pickup) {
+        const near = await placeName(g);
+        const inp = $('dt_pickup');
+        if (near && !tr.pickup && !(inp && inp.value)) { tr.pickup = near; if (inp) inp.value = near; refreshFare(tr); }
+      }
+      clearTimeout(fallback); stamp(); store(); syncNow(); geoNote(`Pick-up spot saved (within ${g.acc} m).`);
     });
     return;
   }
@@ -2928,6 +2940,24 @@ function filledRecordHtml(s) {
     </div>`;
   }
   return html;
+}
+
+/* ---------- Alerts on Lori's phone (sent by the Google script through the ntfy app) ---------- */
+const ALERT_KINDS = [['pickup', 'A driver picks someone up'], ['stop', 'A driver adds a stop'], ['drop', 'A driver drops someone off'], ['shift', 'A driver starts or ends a shift']];
+function alertsHtml() {
+  if (!syncOn()) return '';
+  const on = (data.business && data.business.alerts) || {};
+  return `<h2 id="alertsHead">Alerts on Lori's phone</h2>
+    <p class="hint">Lori's phone buzzes a few seconds after a driver's phone sends it, like a text message.</p>
+    ${ALERT_KINDS.map(([k, l]) => `<label class="check" for="al_${k}"><input id="al_${k}" type="checkbox" data-alert="${k}"${on[k] !== false ? ' checked' : ''}> ${l}</label>`).join('')}
+    ${cfg && cfg.at ? `<details class="firsttime"><summary>Set up alerts on a phone (one time)</summary>
+      <ol class="steps-list"><li>On the phone, install the free app <b>ntfy</b> from the App Store (or Google Play).</li>
+        <li>Open it, tap <b>+</b>, type this name exactly, then tap <b>Subscribe</b>: <code class="setup-code">${esc(cfg.at)}</code></li>
+        <li>Allow notifications when it asks.</li>
+        <li>Come back here and press <b>Send a test alert</b>.</li></ol>
+      <p class="hint">Keep this name private. Anyone who has it could see the alerts.</p></details>
+      <div class="actions"><button type="button" id="aCopy">Copy the alert name</button><button type="button" id="aTest">Send a test alert</button></div>
+      <div class="status" id="aMsg" role="status" aria-live="polite"></div>` : '<p class="hint">Sync once to see how to set it up.</p>'}`;
 }
 
 /* ---------- Rate chart: suggests the fare on a trip ---------- */
