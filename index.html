@@ -2038,7 +2038,12 @@ async function syncNow() {
   if (!syncOn() || needLogin()) return false;
   if (syncState.busy) { syncState.again = true; return syncState.busy; }
   syncState.busy = (async () => {
-    try { const j = await callSync('sync'); noteRole(j); adopt(j.data); afterAdopt(); return true; }
+    try {
+      const j = await callSync('sync'); noteRole(j); adopt(j.data); afterAdopt();
+      /* this sync created alerts for Lori: ask for them to go out, without waiting for the answer */
+      if (j.flush) { try { fetch(cfg.u, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'flushAlerts', key: cfg.k }), keepalive: true }).catch(() => {}); } catch (e) {} }
+      return true;
+    }
     catch (e) {
       syncState.err = errText(e);
       if (String(e && e.message) === 'signed_out' && sharedDevice()) setTimeout(() => signOut('You were signed out. Please sign in again.', true), 0);
