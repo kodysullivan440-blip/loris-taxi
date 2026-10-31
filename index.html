@@ -261,6 +261,9 @@ body.driver .m-tabs [data-view="home"],body.driver .m-tabs [data-view="invoice"]
 body.m .m-tabs{grid-template-columns:repeat(5,1fr)}
 body.m #btnDrive{display:none}
 .combo{display:flex;gap:6px;align-items:stretch}
+/* ---------- simple version: invoices and trip sheets only ---------- */
+body.lite #btnHome,body.lite #btnDrive,body.lite #mTabs [data-view="home"],body.lite #mTabs [data-view="drive"],body.lite #btnCopyDriver,body.lite #loggedBanner{display:none!important}
+body.m.lite .m-tabs{grid-template-columns:repeat(3,1fr)!important}
 /* ---------- fares, cash, time off, year summary ---------- */
 .steps-list{margin:6px 0;padding-left:22px}.steps-list li{margin:4px 0}
 .fare-hint{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-radius:10px;background:var(--bg);font-size:15px}
@@ -1103,6 +1106,9 @@ function ltHighest(d) {
   return Math.max(n, d.counter || 0);
 }
 
+/* Simple version: just invoices and trip sheets. The full version (drivers, schedule, receipts…) is kept for later. */
+const LITE = true;
+document.body.classList.toggle('lite', LITE);
 const KEY = 'loris-taxi-v4';
 const CFG_KEY = 'loris-taxi-sync';
 const DEFAULTS = {
@@ -1793,9 +1799,7 @@ function renderSettings() {
       <label for="sVeh">Vehicles (one per line)<textarea id="sVeh" data-b="vehiclesText" rows="3">${esc((b.vehicles || []).join('\n'))}</textarea></label>
     </div>
     <label for="sAddr">Address<textarea id="sAddr" data-b="address">${esc(b.address)}</textarea></label>
-    ${alertsHtml()}
-    ${ratesHtml()}
-    ${peopleHtml()}
+    ${LITE ? '' : alertsHtml() + ratesHtml() + peopleHtml()}
     <h2>Customers</h2>
     ${data.customers.map((c, i) => `
       <div class="cust-edit" data-ci="${i}">
@@ -2925,6 +2929,7 @@ function loggedFor(cid) {
   return owed(c).filter(t => !cur.trips.some(x => x.logId === t.id)).sort((a, b) => (a.pickupAt || 0) - (b.pickupAt || 0));
 }
 function renderLoggedBanner() {
+  if (LITE) { const lb = $('loggedBanner'); if (lb) lb.innerHTML = ''; return; }
   const box = $('loggedBanner'); if (!box) return;
   const list = cur.customerId && cur.customerId !== ONCE ? loggedFor(cur.customerId) : [];
   if (!list.length) { box.innerHTML = ''; return; }
@@ -3719,11 +3724,12 @@ const PHONE = matchMedia('(max-width: 700px)');
 let mView = 'home', homeOpen = false;
 function openSettings() { if (!settingsOpen) go('settings'); }
 const VIEW_TITLES = { login: 'Sign in', home: 'Home', invoice: 'Invoice', past: 'Past invoices', drive: 'Drive', sheets: 'Trip sheets', settings: 'Settings' };
-function homeView() { return isDriver() ? 'drive' : 'home'; }
+function homeView() { return LITE ? 'invoice' : isDriver() ? 'drive' : 'home'; }
 function go(v) { setView(v); }
 function setView(v) {
   if (needLogin() && v !== 'settings') v = 'login';
   else if (isDriver() && v !== 'settings') v = 'drive';
+  if (LITE && (v === 'home' || v === 'drive')) v = 'invoice';
   loginOpen = v === 'login';
   if (v === 'home' && mView !== 'home') homeSub = null;
   mView = v;
