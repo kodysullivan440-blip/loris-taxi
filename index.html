@@ -1741,10 +1741,22 @@ function renderHistory() {
   const counts = {}; data.history.forEach(h => { counts[h.number] = (counts[h.number] || 0) + 1; });
   const list = data.history.slice().sort((a, b) => (Number(b.number) || 0) - (Number(a.number) || 0)).slice(0, 80);
   $('history').innerHTML = list.length ? list.map(h => `
-    <div class="hrow"><b>#${esc(h.number)}</b><span>${esc(h.label)}${counts[h.number] > 1 ? '<span class="dup">Two invoices have this number. Open one and change its number.</span>' : ''}</span><span class="hd">${esc(fmtInvDate(h.date))}</span><span class="ht">${money(h.total)}</span><button type="button" class="small" data-open="${esc(h.uid)}">${document.body.classList.contains('m') ? 'Open' : 'Open to reprint'}</button></div>`).join('')
+    <div class="hrow"><b>#${esc(h.number)}</b><span>${esc(h.label)}${counts[h.number] > 1 ? '<span class="dup">Two invoices have this number. Open one and change its number.</span>' : ''}</span><span class="hd">${esc(fmtInvDate(h.date))}</span><span class="ht">${money(h.total)}</span><button type="button" class="small" data-open="${esc(h.uid)}">${document.body.classList.contains('m') ? 'Open' : 'Open to reprint'}</button>
+      ${isDriver() ? '' : `<button type="button" class="small" data-hdel="${esc(h.uid)}">${pendingHistDel === h.uid ? 'Press again to remove' : 'Remove'}</button>`}</div>`).join('')
     : `<p class="empty">Nothing yet. Your first invoice will be #${nextNumber()}.</p>`;
 }
+let pendingHistDel = null;
 $('history').addEventListener('click', e => {
+  const del = e.target.closest('[data-hdel]');
+  if (del) {
+    const uid = del.dataset.hdel, h = data.history.find(x => x.uid === uid); if (!h) return;
+    if (pendingHistDel !== uid) { pendingHistDel = uid; renderHistory(); setStatus(`Press again to remove invoice #${h.number} (${h.label}, ${money(h.total)}). This can't be undone.`, true); return; }
+    pendingHistDel = null;
+    data.history = data.history.filter(x => x.uid !== uid);
+    data.trips.forEach(t => { if (t.invoiceUid === uid) delete t.invoiceUid; });   // its logged trips go back to "Ready to invoice"
+    if (cur.uid === uid) newInvoice(cur.customerId);
+    save(); syncNow(); renderAll(); setStatus(`Invoice #${h.number} removed.`); return;
+  }
   const b = e.target.closest('[data-open]'); if (!b) return;
   const h = data.history.find(x => x.uid === b.dataset.open); if (!h) return;
   cur = { uid: h.uid, offline: !!h.offline, customerId: h.customerId, number: h.number, date: h.date, trips: clone(h.trips), once: h.once ? { ...clone(h.once), isNew: false } : null };
@@ -2617,19 +2629,20 @@ function geoProblems(t) {
 const GEOCODE_KEY = 'loris-taxi-geocode';
 const ROUGH = new Set(['city', 'town', 'village', 'hamlet', 'municipality', 'county', 'state', 'suburb', 'neighbourhood', 'quarter', 'locality', 'isolated_dwelling', 'region', 'postcode']);
 async function lookupPlace(text) {
-  const key = String(text || '').trim().toLowerCase(); if (key.length < 3) return null;
+  const key = 'v2:' + String(text || '').trim().toLowerCase(); if (key.length < 6) return [];
   let cache = {}; try { cache = JSON.parse(localStorage.getItem(GEOCODE_KEY) || '{}'); } catch (e) {}
-  const hit = cache[key]; if (hit && Date.now() - hit.at < 60 * 864e5) return hit.r;
+  const hit = cache[key]; if (hit && Date.now() - hit.at < 60 * 864e5) return hit.r || [];
   const q = /ontario|\bon\b/i.test(text) ? text : text + ', Ontario';
   try {
     const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 5000);
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=ca&viewbox=-81.9,44.3,-80.0,42.9&q=${encodeURIComponent(q)}`, { headers: { 'Accept-Language': 'en-CA' }, signal: ctl.signal });
+    /* up to 10 matches: a name like "McDonalds" has many locations, and the check uses the one nearest the phone */
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=10&countrycodes=ca&viewbox=-81.9,44.3,-80.0,42.9&q=${encodeURIComponent(q)}`, { headers: { 'Accept-Language': 'en-CA' }, signal: ctl.signal });
     clearTimeout(tm);
-    const j = await res.json(), f = j && j[0];
-    const r = f ? { lat: +(+f.lat).toFixed(6), lng: +(+f.lon).toFixed(6), rough: ROUGH.has(f.addresstype || f.type) || !/\d/.test(text) && f.class !== 'amenity' && f.class !== 'building' && f.class !== 'shop' } : null;
+    const j = await res.json();
+    const r = (j || []).map(f => ({ lat: +(+f.lat).toFixed(6), lng: +(+f.lon).toFixed(6), rough: ROUGH.has(f.addresstype || f.type) || !/\d/.test(text) && f.class !== 'amenity' && f.class !== 'building' && f.class !== 'shop' }));
     cache[key] = { at: Date.now(), r }; try { localStorage.setItem(GEOCODE_KEY, JSON.stringify(cache)); } catch (e) {}
     return r;
-  } catch (e) { return null; }
+  } catch (e) { return []; }
 }
 /* At drop-off: is the phone near the places typed in? Uses earlier trips first, then the map. */
 async function geoCheck(t) {
@@ -2637,7 +2650,7 @@ async function geoCheck(t) {
   for (const [f, g, label] of [['pickup', 'pickupGeo', 'Picked up at'], ['dropoff', 'dropoffGeo', 'Dropped off at']]) {
     if (!t[f] || !t[g]) continue;
     const known = knownSpot(t[f], t.id);
-    const target = known || await lookupPlace(t[f]);
+    const target = known || (await lookupPlace(t[f])).sort((a, b) => distM(a, t[g]) - distM(b, t[g]))[0];
     if (!target) continue;
     const allow = (target.rough ? 3000 : GEO_OK_M) + Math.min(t[g].acc || 0, 300);
     const d = distM(target, t[g]);
