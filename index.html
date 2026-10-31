@@ -285,6 +285,10 @@ button.on{border-color:var(--accent);color:var(--accent);box-shadow:inset 0 0 0 
 .ytable th,.ytable td{text-align:right;padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
 .ytable th:first-child,.ytable td:first-child{text-align:left}
 .ytable tbody tr:last-child td{border-bottom:0}
+.wk-driver h3{font-size:20px}
+.ytable tr.wk-total td{border-top:2px solid var(--fg);font-weight:700}
+.wk-sum{margin-top:10px}
+.wk-pct .combo{max-width:160px}.wk-pct .combo span{align-self:center;font-weight:700}
 .bk-list{display:flex;flex-wrap:wrap;gap:8px}
 /* ---------- schedule ---------- */
 .seg{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))!important}
@@ -2700,7 +2704,7 @@ function renderDrive() {
   p.hidden = !driveOpen;
   if (!driveOpen) { stopTimer(); return; }
   const owner = !isDriver();
-  const seg = owner && !driveEdit ? `<div class="seg" role="tablist">${[['shift', 'My shift'], ['sched', 'Schedule'], ['shifts', 'All shifts'], ['money', 'Tabs & billing']]
+  const seg = owner && !driveEdit ? `<div class="seg" role="tablist">${[['shift', 'My shift'], ['sched', 'Schedule'], ['shifts', 'All shifts'], ['week', 'Weekly totals'], ['money', 'Tabs & billing']]
     .map(([k, l]) => `<button type="button" role="tab" data-dtab="${k}" aria-selected="${driveTab === k}">${l}</button>`).join('')}</div>` : '';
   let body;
   const ed = driveEdit && findTrip(driveEdit);
@@ -2708,6 +2712,7 @@ function renderDrive() {
   else if (!owner || driveTab === 'shift') body = myShiftHtml();
   else if (driveTab === 'shifts') body = driveShiftView ? shiftDetailHtml(driveShiftView) : shiftsListHtml();
   else if (driveTab === 'sched') body = schedHtml();
+  else if (driveTab === 'week') body = weekHtml();
   else body = moneyHtml();
   const old = $('driveMsg'), keep = old ? [old.innerHTML, old.className] : null;
   p.innerHTML = seg + body + `<div class="status" id="driveMsg" role="status" aria-live="polite"></div>`;
@@ -3222,6 +3227,82 @@ function yearCsv(y) {
   const m = $('yMsg'); if (m) m.textContent = 'Spreadsheet made. It opens in Excel or Google Sheets.';
 }
 
+/* ---------- Weekly totals: each driver's week added up, for payday ---------- */
+let weekStart = null;
+function weekData(start) {
+  const end = addDays(start, 6), days = [...Array(7)].map((_, i) => addDays(start, i));
+  const trips = live(data.trips).filter(t => t.status === 'done' && t.date >= start && t.date <= end);
+  const byDriver = {};
+  trips.forEach(t => {
+    const sh = data.shifts.find(s => s.id === t.shiftId);
+    const name = (sh && sh.driver) || t.driver || 'Driver';
+    const d = byDriver[name] = byDriver[name] || { days: {}, tot: sums([]), shifts: new Set(), cashIn: 0, cashDue: 0, km: 0 };
+    d.days[t.date] = d.days[t.date] || [];
+    d.days[t.date].push(t);
+    if (sh) d.shifts.add(sh.id);
+  });
+  Object.values(byDriver).forEach(d => {
+    d.tot = sums(Object.values(d.days).flat());
+    d.shifts.forEach(id => { const s = data.shifts.find(x => x.id === id); if (!s) return;
+      d.cashIn += s.cashIn || 0; d.cashDue += s.cashDue || 0;
+      if (Number(s.endKm) > Number(s.startKm)) d.km += Number(s.endKm) - Number(s.startKm); });
+  });
+  return { start, end, days, byDriver, all: sums(trips) };
+}
+function sharePct() { return Number((data.business && data.business.sharePct) || 0); }
+function weekDriverHtml(name, d, W) {
+  const pct = sharePct(), share = Math.round(d.tot.all * pct / 100);
+  const row = (label, t, bold) => `<tr${bold ? ' class="wk-total"' : ''}><td>${label}</td><td>${t.n}</td><td>${money(t.cash)}</td><td>${money(t.etransfer)}</td><td>${money(t.tab)}</td><td>${money(t.account)}</td><td><b>${money(t.all)}</b></td></tr>`;
+  return `<section class="step wk-driver"><h3>${esc(name)}</h3>
+    <div class="table-wrap"><table class="ytable"><thead><tr><th>Day</th><th>Trips</th><th>Cash</th><th>E-transfer</th><th>Tab</th><th>Account</th><th>Total</th></tr></thead>
+    <tbody>${W.days.filter(day => d.days[day]).map(day => row(esc(niceDate(day)), sums(d.days[day]))).join('')}${row('Week', d.tot, true)}</tbody></table></div>
+    <div class="money-grid wk-sum">
+      <div><small>Cash for the week</small><b>${money(d.tot.cash)}</b></div>
+      <div><small>E-transfers for the week</small><b>${money(d.tot.etransfer)}</b></div>
+      <div><small>All fares</small><b>${money(d.tot.all)}</b></div>
+      ${pct ? `<div><small>Driver's ${pct}%</small><b>${money(share)}</b></div>` : `<div><small>Kilometres</small><b>${d.km.toLocaleString('en-CA')}</b></div>`}
+    </div>
+    ${d.cashDue || d.cashIn ? `<p class="hint">Cash handed in at the end of shifts: <b>${money(d.cashIn)}</b>${d.cashIn !== d.cashDue ? ` <span class="late">(trips say ${money(d.cashDue)})</span>` : ' ✓ matches'}</p>` : ''}
+  </section>`;
+}
+function weekHtml() {
+  if (!weekStart) weekStart = mondayOf(todayISO());
+  const W = weekData(weekStart), names = Object.keys(W.byDriver).sort();
+  return `<div class="sched-head"><button type="button" data-wk="-7" aria-label="Previous week">‹</button>
+      <b>${esc(niceDate(W.start))} to ${esc(niceDate(W.end))}</b><button type="button" data-wk="7" aria-label="Next week">›</button>
+      ${weekStart !== mondayOf(todayISO()) ? '<button type="button" class="link" data-wk="0">This week</button>' : ''}</div>
+    <div class="card-soft"><b>Everyone this week: ${W.all.n} trips, ${money(W.all.all)}</b>${sumsHtml(W.all)}</div>
+    <div class="actions"><label for="wkPct" class="wk-pct">Driver's share of fares<span class="combo"><input id="wkPct" inputmode="decimal" value="${sharePct() || ''}" placeholder="e.g. 22"><span>%</span></span></label>
+      ${names.length ? '<button type="button" class="primary" id="wkPrint">Print the week (a page per driver)</button>' : ''}</div>
+    ${names.length ? names.map(n => weekDriverHtml(n, W.byDriver[n], W)).join('') : '<p class="empty">No trips logged this week.</p>'}
+    <p class="hint">Weeks run Monday to Sunday. Everything here adds itself up from the trips the drivers log. Nobody has to total anything by hand.</p>`;
+}
+function weekPrintHtml() {
+  const W = weekData(weekStart), pct = sharePct();
+  return Object.keys(W.byDriver).sort().map(name => {
+    const d = W.byDriver[name], cell = v => `<td class="fill">${v}</td>`;
+    const rows = W.days.filter(day => d.days[day]).map(day => { const t = sums(d.days[day]); return `<tr>${cell(esc(niceDate(day)))}${cell(t.n)}${cell(money(t.cash))}${cell(money(t.etransfer))}${cell(money(t.tab))}${cell(money(t.account))}${cell(money(t.all))}</tr>`; }).join('');
+    const t = d.tot;
+    return `<div class="sh port"><h1>Weekly Totals</h1>
+      <div class="meta"><span>Company: <b>Lori’s TAXI</b></span><span>Driver: <b>${esc(name)}</b></span><span>${esc(niceDate(W.start))} to ${esc(niceDate(W.end))}</span></div>
+      <table style="margin-top:12px"><thead><tr>${['Day', 'Trips', 'Cash', 'E-transfer', 'Tab', 'Account', 'Total'].map(c => `<th>${c}</th>`).join('')}</tr></thead>
+        <tbody>${rows}<tr>${cell('<b>Week</b>')}${cell('<b>' + t.n + '</b>')}${cell('<b>' + money(t.cash) + '</b>')}${cell('<b>' + money(t.etransfer) + '</b>')}${cell('<b>' + money(t.tab) + '</b>')}${cell('<b>' + money(t.account) + '</b>')}${cell('<b>' + money(t.all) + '</b>')}</tr></tbody></table>
+      <div class="foot"><span>TOTAL CASH: <b>${money(t.cash)}</b></span><span>TOTAL E-TRANSFER: <b>${money(t.etransfer)}</b></span>
+        <span>ALL FARES: <b>${money(t.all)}</b></span>${pct ? `<span>DRIVER'S ${pct}%: <b>${money(Math.round(t.all * pct / 100))}</b></span>` : ''}
+        <span>SIGNATURE: ${line('1.6in')}</span></div></div>`;
+  }).join('');
+}
+$('drivePanel').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || driveTab !== 'week' || isDriver()) return;
+  if (b.dataset.wk !== undefined) { weekStart = b.dataset.wk === '0' ? mondayOf(todayISO()) : addDays(weekStart, Number(b.dataset.wk)); renderDrive(); return; }
+  if (b.id === 'wkPrint') { printPages(weekPrintHtml(), false, `Weekly totals ${weekStart}`, 'driveMsg'); }
+});
+$('drivePanel').addEventListener('change', e => {
+  if (e.target.id !== 'wkPct') return;
+  const v = Math.max(0, Math.min(100, Number(String(e.target.value).replace(/[^\d.]/g, '')) || 0));
+  data.business.sharePct = v || ''; save(); renderDrive();
+});
+
 /* ---------- Schedule: who's working when (Lori and Raymond edit it) ---------- */
 let schedWeek = null, schedEdit = null, pendingDelSched = null;
 function addDays(iso, n) { const p = parts(iso); return isoDate(new Date(p.y, p.m - 1, p.d + n).getTime()); }
@@ -3406,6 +3487,7 @@ function renderHome() {
       <button type="button" data-home="money"><b>Ready to invoice</b><small>${ready ? ready + ' customer' + (ready === 1 ? '' : 's') : 'All caught up'}</small></button>
       <button type="button" data-home="shifts"><b>All shifts</b><small>Every driver's trips</small></button>
       <button type="button" data-home="past"><b>Past invoices</b><small>${lastInv ? 'Last: #' + esc(lastInv.number) + ', ' + esc(lastInv.label) : 'None yet'}</small></button>
+      <button type="button" data-home="week"><b>Weekly totals</b><small>Each driver's week, added up</small></button>
       <button type="button" data-home="sched"><b>Schedule</b><small>${schedFor(todayISO()).length} shift${schedFor(todayISO()).length === 1 ? '' : 's'} today</small></button>
       <button type="button" data-home="sheets"><b>Trip sheets</b><small>Print blank sheets</small></button>
       <button type="button" data-home="year"><b>Year summary</b><small>For taxes and the accountant</small></button>
@@ -3429,7 +3511,7 @@ $('homePanel').addEventListener('click', e => {
   if (b.id === 'yPrint') { printPages(yearPrintHtml(yearSel), false, `Lori's Taxi ${yearSel} summary`, 'yMsg'); return; }
   if (b.id === 'yCsv') { yearCsv(yearSel); return; }
   if (h === 'new') { $('btnNew').click(); return; }
-  if (h === 'money' || h === 'shifts' || h === 'sched') { driveTab = h; driveShiftView = null; driveEdit = null; go('drive'); return; }
+  if (h === 'money' || h === 'shifts' || h === 'sched' || h === 'week') { driveTab = h; driveShiftView = null; driveEdit = null; go('drive'); return; }
   if (h === 'past') { go(document.body.classList.contains('m') ? 'past' : 'invoice'); if (!document.body.classList.contains('m')) $('secPast').scrollIntoView({ block: 'start' }); return; }
   if (h === 'sheets') { go('sheets'); return; }
   if (b.dataset.dedit) { driveEdit = b.dataset.dedit; go('drive'); }
