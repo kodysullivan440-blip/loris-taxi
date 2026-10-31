@@ -1107,7 +1107,7 @@ function ltHighest(d) {
 }
 
 /* Simple version: just invoices and trip sheets. The full version (drivers, schedule, receipts…) is kept for later. */
-const LITE = true;
+const LITE = /*@@LITE@@*/false;
 document.body.classList.toggle('lite', LITE);
 const KEY = 'loris-taxi-v4';
 const CFG_KEY = 'loris-taxi-sync';
