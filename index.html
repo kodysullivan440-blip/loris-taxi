@@ -285,6 +285,16 @@ button.on{border-color:var(--accent);color:var(--accent);box-shadow:inset 0 0 0 
 .ytable th,.ytable td{text-align:right;padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
 .ytable th:first-child,.ytable td:first-child{text-align:left}
 .ytable tbody tr:last-child td{border-bottom:0}
+.rc-form{border:2px solid var(--accent)}
+.rc-pages{display:flex;flex-wrap:wrap;gap:10px}
+.rc-thumb{position:relative;width:96px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:13px}
+.rc-thumb img{width:96px;height:124px;object-fit:cover;border:1px solid var(--line);border-radius:8px;background:#fff}
+.rc-thumb button{position:absolute;top:4px;right:4px;min-height:30px;min-width:30px;padding:0}
+.rc-pdf{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border-radius:10px}
+.btn-file{display:inline-flex;align-items:center;justify-content:center;min-height:52px;padding:0 18px;border:2px solid var(--accent);border-radius:12px;font-weight:700;cursor:pointer;background:var(--panel);color:var(--accent);font-size:17px}
+.btn-file.primary{background:var(--accent);color:var(--accent-ink)}
+.btn-link{display:inline-flex;align-items:center;min-height:48px;padding:0 14px;font-weight:700}
+.rc-row .tr-what b{display:block}
 .wk-driver h3{font-size:20px}
 .ytable tr.wk-total td{border-top:2px solid var(--fg);font-weight:700}
 .wk-sum{margin-top:10px}
@@ -1072,6 +1082,7 @@ function ltMerge(a, b) {
   out.users = ltById([a.users, b.users], gone);
   out.sched = ltById([a.sched, b.sched], gone);
   out.timeoff = ltById([a.timeoff, b.timeoff], gone);
+  out.expenses = ltById([a.expenses, b.expenses], gone);
   var hm = {};
   [a.history || [], b.history || []].forEach(function (list) {
     list.forEach(function (h) {
@@ -1120,7 +1131,7 @@ const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 
 const NOBODY = { id: '', label: '', cols: 'trip', hst: false, email: '', billTo: '', places: [], clients: [] };
 function blankData() {
-  return { v: 5, business: { ...clone(DEFAULTS.business), _t: 1 }, customers: clone(DEFAULTS.customers).map(c => ({ ...c, _t: 1 })), history: [], shifts: [], trips: [], users: [], sched: [], timeoff: [], gone: {}, counter: 0 };
+  return { v: 5, business: { ...clone(DEFAULTS.business), _t: 1 }, customers: clone(DEFAULTS.customers).map(c => ({ ...c, _t: 1 })), history: [], shifts: [], trips: [], users: [], sched: [], timeoff: [], expenses: [], gone: {}, counter: 0 };
 }
 /* bring older saved data or older backups up to date */
 function upgrade(d) {
@@ -1135,6 +1146,7 @@ function upgrade(d) {
     users: (d.users || []).map(x => ({ ...x, _t: x._t || 1 })),
     sched: (d.sched || []).map(x => ({ ...x, _t: x._t || 1 })),
     timeoff: (d.timeoff || []).map(x => ({ ...x, _t: x._t || 1 })),
+    expenses: (d.expenses || []).map(x => ({ ...x, _t: x._t || 1 })),
     gone: d.gone || {},
     counter: d.counter || 0
   };
@@ -1149,7 +1161,7 @@ let data = load();
 /* Remember how everything looked at the last save, so a save can mark only what changed. */
 let snap = null;
 const strip = o => { const { _t, ...r } = o; return JSON.stringify(r); };
-const KEYED = ['customers', 'shifts', 'trips', 'users', 'sched', 'timeoff'];
+const KEYED = ['customers', 'shifts', 'trips', 'users', 'sched', 'timeoff', 'expenses'];
 function takeSnap() {
   snap = { biz: strip(data.business), k: {}, hist: {} };
   KEYED.forEach(k => { snap.k[k] = {}; data[k].forEach(x => { snap.k[k][x.id] = strip(x); }); });
@@ -3155,8 +3167,14 @@ function yearData(y) {
   const tot = months.reduce((a, m) => { for (const k in m) a[k] = (a[k] || 0) + m[k]; return a; }, {});
   const rate = Number(data.business.rate) || 13;
   tot.income = tot.inv + tot.cash + tot.etransfer + tot.tabPaid;
+  const exp = {}; let expTot = 0, expHst = 0;
+  (data.expenses || []).filter(x => !x.void && inY(x.date)).forEach(x => {
+    const c = x.cat || 'Other', e = exp[c] = exp[c] || { n: 0, total: 0, hst: 0 };
+    e.n++; e.total += cents(x.total); e.hst += cents(x.hst); expTot += cents(x.total); expHst += cents(x.hst);
+  });
+  tot.expTot = expTot; tot.expHst = expHst;
   tot.hstInside = Math.round((tot.cash + tot.etransfer + tot.tabPaid) * rate / (100 + rate));
-  return { y, months, byCust, cars, drivers, tot, invCount: invs.length, rate };
+  return { y, months, byCust, cars, drivers, tot, invCount: invs.length, rate, exp };
 }
 function yearHtml() {
   const Y = yearData(yearSel), t = Y.tot, now = new Date().getFullYear();
@@ -3178,6 +3196,10 @@ function yearHtml() {
       <tbody>${Y.months.map((m, i) => row(MONTHS[i], m)).join('')}${row('<b>Year</b>', t)}</tbody></table></div></section>
     <section class="step"><h3>Invoiced, by customer</h3>${Object.keys(Y.byCust).length ? `<div class="table-wrap"><table class="ytable"><thead><tr><th>Customer</th><th>Invoices</th><th>Before HST</th><th>HST</th></tr></thead>
       <tbody>${Object.entries(Y.byCust).sort((a, b) => b[1].sub - a[1].sub).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v.n}</td><td>${money(v.sub)}</td><td>${money(v.hst)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="empty">No invoices this year.</p>'}</section>
+    <section class="step"><h3>Expenses (from Receipts)</h3>${Object.keys(Y.exp).length ? `<div class="table-wrap"><table class="ytable"><thead><tr><th>For</th><th>Receipts</th><th>Total paid</th><th>HST paid</th></tr></thead>
+      <tbody>${Object.entries(Y.exp).sort((a, b) => b[1].total - a[1].total).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v.n}</td><td>${money(v.total)}</td><td>${money(v.hst)}</td></tr>`).join('')}
+      <tr class="wk-total"><td>All</td><td>${Object.values(Y.exp).reduce((a, v) => a + v.n, 0)}</td><td>${money(t.expTot)}</td><td>${money(t.expHst)}</td></tr></tbody></table></div>
+      <p class="hint">HST paid on business costs (<b>${money(t.expHst)}</b>) can usually be claimed back on the HST return. The accountant decides what counts.</p>` : '<p class="empty">No receipts added for this year. Add them under Home → Receipts.</p>'}</section>
     <section class="step"><h3>Kilometres by car</h3>${Object.keys(Y.cars).length ? `<div class="table-wrap"><table class="ytable"><thead><tr><th>Car</th><th>Shifts</th><th>Km on shifts</th><th>Lowest reading</th><th>Highest reading</th></tr></thead>
       <tbody>${Object.entries(Y.cars).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v.shifts}</td><td>${v.km.toLocaleString('en-CA')}</td><td>${v.first ?? '—'}</td><td>${v.last ?? '—'}</td></tr>`).join('')}</tbody></table></div>
       <p class="hint">Km come from the start and end mileage drivers type in. For the car logbook, write down each car's odometer on January 1 too.</p>` : '<p class="empty">No shifts this year.</p>'}</section>
@@ -3217,6 +3239,10 @@ function yearCsv(y) {
   lines.push([], ['Trips drivers logged'], ['Date', 'Picked up', 'Dropped off', 'From', 'To', 'Driver', 'Car', 'Amount', 'Paid by', 'Customer', 'Invoiced']);
   live(data.trips).filter(x => x.status === 'done' && String(x.date).startsWith(String(y))).sort((a, b) => (a.pickupAt || 0) - (b.pickupAt || 0)).forEach(x =>
     lines.push([x.date, hm(x.pickupAt), hm(x.dropoffAt), x.pickup, x.dropoff, x.driver, x.vehicle, d(cents(x.amount)), PAY[x.pay] || '', customerName(x), x.invoiceUid ? 'yes' : '']));
+  lines.push([], ['Expenses (receipts)'], ['Date', 'From', 'For', 'Car', 'Total', 'HST', 'Before HST', 'Receipt link', 'Notes']);
+  (data.expenses || []).filter(x => !x.void && String(x.date).startsWith(String(y))).sort((a, b) => String(a.date).localeCompare(String(b.date))).forEach(x =>
+    lines.push([x.date, x.vendor, x.cat, x.vehicle || '', d(cents(x.total)), d(cents(x.hst)), d(cents(x.total) - cents(x.hst)), x.fileUrl || '', x.note || '']));
+  lines.push(['Total', '', '', '', d(Y.tot.expTot), d(Y.tot.expHst), d(Y.tot.expTot - Y.tot.expHst)]);
   lines.push([], ['Kilometres by car'], ['Car', 'Shifts', 'Km on shifts', 'Lowest reading', 'Highest reading']);
   Object.entries(Y.cars).forEach(([k, v]) => lines.push([k, v.shifts, v.km, v.first ?? '', v.last ?? '']));
   lines.push([], ['Drivers'], ['Driver', 'Days worked', 'Hours', 'Trips', 'Fares']);
@@ -3226,6 +3252,161 @@ function yearCsv(y) {
   else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
   const m = $('yMsg'); if (m) m.textContent = 'Spreadsheet made. It opens in Excel or Google Sheets.';
 }
+
+/* ---------- Receipts: photos of every page become one PDF in Google Drive, plus a line on the Expenses list ---------- */
+const EXP_CATS = ['Fuel', 'Repairs & maintenance', 'Tires', 'Insurance', 'Licences & fees', 'Phone & internet', 'Office & supplies', 'Car wash & cleaning', 'Other'];
+let rcMonth = null, rcForm = null, rcBusy = false, pendingDelRc = null, rcNote = { t: '', bad: false };
+const monthName = ym => { const [y, m] = ym.split('-').map(Number); return new Date(y, m - 1, 1).toLocaleDateString('en-CA', { month: 'long', year: 'numeric' }); };
+function addMonths(ym, n) { const [y, m] = ym.split('-').map(Number); const d = new Date(y, m - 1 + n, 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+function rcSay(t, bad) { rcNote = { t, bad: !!bad }; const m = $('rcMsg'); if (m) { m.textContent = t; m.classList.toggle('bad', !!bad); } if (t) setStatus(t, bad); }
+function blankRc() { return { id: null, pages: [], pdf: null, vendor: '', date: todayISO(), cat: 'Fuel', vehicle: '', total: '', hst: '', note: '' }; }
+function receiptFormHtml() {
+  const f = rcForm, vendors = [...new Set((data.expenses || []).map(x => x.vendor).filter(Boolean))];
+  return `<section class="step rc-form"><h3>${f.id ? 'Change this receipt' : 'Add a receipt'}</h3>
+    ${f.id ? '' : `<div class="rc-pages">
+      ${f.pdf ? `<div class="rc-pdf">📄 ${esc(f.pdf.name)} <button type="button" class="small" data-rcdel="pdf">Remove</button></div>`
+        : f.pages.map((pg, i) => `<div class="rc-thumb"><img src="${pg}" alt="Page ${i + 1}"><span>Page ${i + 1}</span><button type="button" class="small" data-rcdel="${i}" aria-label="Remove page ${i + 1}">✕</button></div>`).join('')}
+      </div>
+      ${f.pdf ? '' : `<div class="actions">
+        <label class="btn-file primary">${f.pages.length ? '📷 Add the next page' : '📷 Take a photo of page 1'}<input type="file" id="rcCam" accept="image/*" capture="environment" hidden></label>
+        <label class="btn-file">Choose photos or a PDF<input type="file" id="rcPick" accept="image/*,application/pdf" multiple hidden></label></div>
+        <p class="hint">Take one photo for each page, flat and in good light, so every number can be read.</p>`}`}
+    <datalist id="rcVendors">${vendors.map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>
+    <div class="fields">
+      <label for="rcVendor">Who it's from<input id="rcVendor" data-rc="vendor" list="rcVendors" value="${esc(f.vendor)}" placeholder="e.g. Foxton Fuels" autocomplete="off"></label>
+      <label for="rcDate">Date on the bill<input id="rcDate" type="date" data-rc="date" value="${esc(f.date)}"></label>
+      <label for="rcCat">What for<select id="rcCat" data-rc="cat">${EXP_CATS.map(c => `<option${c === f.cat ? ' selected' : ''}>${c}</option>`).join('')}</select></label>
+      <label for="rcCar">Which car (if any)<select id="rcCar" data-rc="vehicle"><option value="">All / none</option>${vehicles().map(v => `<option${v === f.vehicle ? ' selected' : ''}>${esc(v)}</option>`).join('')}</select></label>
+      <label for="rcTotal" class="money">Total paid<input id="rcTotal" data-rc="total" inputmode="decimal" value="${esc(f.total)}" placeholder="0.00"></label>
+      <label for="rcHst" class="money">HST on the bill<input id="rcHst" data-rc="hst" inputmode="decimal" value="${esc(f.hst)}" placeholder="0.00"></label>
+    </div>
+    <div class="actions"><button type="button" class="small" id="rcCalc">Work out 13% HST from the total</button></div>
+    <label for="rcNote">Notes<input id="rcNote" data-rc="note" value="${esc(f.note)}" placeholder="e.g. Invoice 677276, August fuel"></label>
+    <div class="actions"><button type="button" class="primary big" id="rcSave"${rcBusy ? ' disabled' : ''}>${rcBusy ? 'Saving…' : 'Save receipt'}</button><button type="button" id="rcCancel">Cancel</button></div>
+  </section>`;
+}
+function receiptsHtml() {
+  if (!rcMonth) rcMonth = todayISO().slice(0, 7);
+  const list = (data.expenses || []).filter(x => !x.void && String(x.date).slice(0, 7) === rcMonth).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  const tot = list.reduce((a, x) => a + cents(x.total), 0), hst = list.reduce((a, x) => a + cents(x.hst), 0);
+  const folder = data.business && data.business.receiptsFolderUrl;
+  return `<button type="button" class="link back" id="yBack">‹ Home</button>
+    <div class="home-hero"><div><small>Bills and receipts the business paid</small><h2>Receipts</h2></div></div>
+    <div class="status${rcNote.bad ? ' bad' : ''}" id="rcMsg" role="status" aria-live="polite">${esc(rcNote.t)}</div>
+    ${rcForm ? receiptFormHtml() : `<button type="button" class="primary huge" id="rcAdd">+ Add a receipt</button>`}
+    <div class="sched-head"><button type="button" data-rcm="-1" aria-label="Previous month">‹</button><b>${esc(monthName(rcMonth))}</b><button type="button" data-rcm="1" aria-label="Next month">›</button></div>
+    <div class="money-grid"><div><small>Receipts</small><b>${list.length}</b></div><div><small>Total paid</small><b>${money(tot)}</b></div>
+      <div><small>HST paid</small><b>${money(hst)}</b></div><div><small>Before HST</small><b>${money(tot - hst)}</b></div></div>
+    ${list.length ? `<div class="trip-rows">${list.map(x => `<div class="trip-row rc-row">
+        <div class="tr-time">${esc(niceDate(x.date))}</div>
+        <div class="tr-what"><b>${esc(x.vendor)}</b><small>${esc(x.cat)}${x.vehicle ? ' · ' + esc(x.vehicle) : ''}${x.note ? ' · ' + esc(x.note) : ''}</small>
+          ${x.fileUrl ? `<a class="map-link" href="${esc(x.fileUrl)}" target="_blank" rel="noopener">See the receipt (${x.pages || 1} page${x.pages === 1 ? '' : 's'})</a>` : '<small class="late">No copy saved</small>'}</div>
+        <div class="tr-amt">${money(cents(x.total))}<small>HST ${money(cents(x.hst))}</small></div>
+        <span class="fare-btns"><button type="button" class="small" data-rcedit="${esc(x.id)}">Change</button><button type="button" class="small" data-rcrm="${esc(x.id)}">${pendingDelRc === x.id ? 'Press again to remove' : 'Remove'}</button></span>
+      </div>`).join('')}</div>` : '<p class="empty">No receipts for this month yet.</p>'}
+    <div class="actions"><button type="button" id="rcCsv">Download ${esc(monthName(rcMonth))} for the accountant</button>
+      ${folder ? `<a class="btn-link" href="${esc(folder)}" target="_blank" rel="noopener">Open the receipts folder in Google Drive</a>` : ''}</div>
+    <p class="hint">Keep the paper copies too. Business records have to be kept for at least 6 years.</p>`;
+}
+function shrinkPhoto(file) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      const max = 1700, sc = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas'); c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      res(c.toDataURL('image/jpeg', 0.75));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('photo')); };
+    img.src = url;
+  });
+}
+function readBase64(file) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(file); }); }
+async function addRcFiles(files) {
+  for (const f of files) {
+    if (f.type === 'application/pdf') {
+      if (f.size > 20e6) { rcSay('That PDF is too big (over 20 MB).', true); continue; }
+      rcForm.pdf = { name: f.name, data: await readBase64(f) }; rcForm.pages = [];
+    } else {
+      try { rcForm.pages.push(await shrinkPhoto(f)); } catch (e) { rcSay("That photo couldn't be opened. Try taking it again.", true); }
+    }
+  }
+  renderHome();
+}
+function pagesToPdf(pages) {
+  return new Promise(async res => {
+    const pdf = new window.jspdf.jsPDF({ unit: 'pt', format: 'letter' }), W = 612, H = 792, m = 18;
+    for (let i = 0; i < pages.length; i++) {
+      const img = await new Promise(r => { const im = new Image(); im.onload = () => r(im); im.src = pages[i]; });
+      if (i) pdf.addPage('letter', 'portrait');
+      const sc = Math.min((W - 2 * m) / img.width, (H - 2 * m) / img.height), w = img.width * sc, h = img.height * sc;
+      pdf.addImage(pages[i], 'JPEG', (W - w) / 2, (H - h) / 2, w, h);
+    }
+    res(pdf.output('datauristring').split(',')[1]);
+  });
+}
+async function saveReceipt() {
+  const f = rcForm;
+  if (!f.vendor.trim()) return rcSay("Type who the bill is from.", true);
+  if (!f.date) return rcSay('Pick the date on the bill.', true);
+  if (!(cents(f.total) > 0)) return rcSay('Type the total paid.', true);
+  if (cents(f.hst) > cents(f.total)) return rcSay('The HST is bigger than the total. Check the numbers.', true);
+  if (f.id) {
+    const x = data.expenses.find(e => e.id === f.id);
+    Object.assign(x, { vendor: f.vendor.trim(), date: f.date, cat: f.cat, vehicle: f.vehicle, total: (cents(f.total) / 100).toFixed(2), hst: (cents(f.hst) / 100).toFixed(2), note: f.note.trim() });
+    rcForm = null; save(); syncNow(); renderHome(); rcSay('Receipt changed.'); return;
+  }
+  if (!f.pdf && !f.pages.length) return rcSay('Take a photo of each page first (or choose the PDF).', true);
+  if (!syncOn()) return rcSay('This device is not connected to the shared file, so the copy cannot be saved.', true);
+  rcBusy = true; renderHome(); rcSay('Saving the copy to Google Drive…');
+  try {
+    const dataB64 = f.pdf ? f.pdf.data : await pagesToPdf(f.pages);
+    const name = `${f.date} ${f.vendor.trim()} $${(cents(f.total) / 100).toFixed(2)}`;
+    const j = await callSync('receiptFile', { file: { date: f.date, name, type: 'application/pdf', data: dataB64 } });
+    data.expenses.push({ id: newId('x'), vendor: f.vendor.trim(), date: f.date, cat: f.cat, vehicle: f.vehicle, total: (cents(f.total) / 100).toFixed(2), hst: (cents(f.hst) / 100).toFixed(2), note: f.note.trim(), pages: f.pdf ? 1 : f.pages.length, fileUrl: j.url, fileId: j.fileId, addedAt: Date.now() });
+    if (j.folderUrl) data.business.receiptsFolderUrl = j.folderUrl;
+    rcBusy = false; rcForm = null; rcMonth = f.date.slice(0, 7); save(); syncNow(); renderHome();
+    rcSay(`Saved: ${f.vendor.trim()}, ${money(cents(f.total))}. The copy is in Google Drive.`);
+  } catch (e) {
+    rcBusy = false; renderHome();
+    const m = String((e && e.message) || '');
+    rcSay(m.startsWith('drive') ? 'Google Drive needs permission first (see the setup page), so it was not saved. Nothing is lost: press Save again after.' : "It couldn't be saved: " + errText(e) + '. Your photos are still here, so press Save receipt again.', true);
+  }
+}
+function receiptsCsv() {
+  const list = (data.expenses || []).filter(x => !x.void && String(x.date).slice(0, 7) === rcMonth).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`, d = c => (c / 100).toFixed(2);
+  const lines = [[`Lori's Taxi receipts, ${monthName(rcMonth)}`], [], ['Date', 'From', 'For', 'Car', 'Total', 'HST', 'Before HST', 'Pages', 'Receipt link', 'Notes']];
+  list.forEach(x => lines.push([x.date, x.vendor, x.cat, x.vehicle || '', d(cents(x.total)), d(cents(x.hst)), d(cents(x.total) - cents(x.hst)), x.pages || '', x.fileUrl || '', x.note || '']));
+  const T = list.reduce((a, x) => a + cents(x.total), 0), Hs = list.reduce((a, x) => a + cents(x.hst), 0);
+  lines.push(['Total', '', '', '', d(T), d(Hs), d(T - Hs)]);
+  const blob = new Blob(['﻿' + lines.map(r => r.map(q).join(',')).join('\r\n')], { type: 'text/csv' }), name = `Loris-Taxi-receipts-${rcMonth}.csv`;
+  if (SHARE_MODE) navigator.share({ files: [new File([blob], name, { type: 'text/csv' })], title: name }).catch(() => {});
+  else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
+}
+$('homePanel').addEventListener('click', e => {
+  if (homeSub !== 'receipts') return;
+  const b = e.target.closest('button'); if (!b) return;
+  const ds = b.dataset;
+  if (b.id === 'rcAdd') { rcForm = blankRc(); renderHome(); return; }
+  if (b.id === 'rcCancel') { rcForm = null; renderHome(); return; }
+  if (b.id === 'rcSave') { saveReceipt(); return; }
+  if (b.id === 'rcCalc') { if (cents(rcForm.total) > 0) { rcForm.hst = (Math.round(cents(rcForm.total) * 13 / 113) / 100).toFixed(2); const h = $('rcHst'); if (h) h.value = rcForm.hst; } else rcSay('Type the total first.', true); return; }
+  if (b.id === 'rcCsv') { receiptsCsv(); return; }
+  if (ds.rcm) { rcMonth = addMonths(rcMonth, Number(ds.rcm)); renderHome(); return; }
+  if (ds.rcdel !== undefined) { if (ds.rcdel === 'pdf') rcForm.pdf = null; else rcForm.pages.splice(Number(ds.rcdel), 1); renderHome(); return; }
+  if (ds.rcedit) { const x = data.expenses.find(y => y.id === ds.rcedit); rcForm = { ...blankRc(), ...x, id: x.id, pages: [], pdf: null }; renderHome(); scrollTo({ top: 0 }); return; }
+  if (ds.rcrm) {
+    if (pendingDelRc !== ds.rcrm) { pendingDelRc = ds.rcrm; renderHome(); return; }
+    const x = data.expenses.find(y => y.id === ds.rcrm); if (x) x.void = true; pendingDelRc = null;
+    save(); syncNow(); renderHome(); rcSay('Receipt removed from the list. The copy stays in Google Drive.'); return;
+  }
+});
+$('homePanel').addEventListener('input', e => { const k = e.target.dataset.rc; if (k && rcForm) rcForm[k] = e.target.value; });
+$('homePanel').addEventListener('change', e => {
+  const k = e.target.dataset.rc; if (k && rcForm) rcForm[k] = e.target.value;
+  if ((e.target.id === 'rcCam' || e.target.id === 'rcPick') && e.target.files && e.target.files.length) addRcFiles([...e.target.files]);
+});
 
 /* ---------- Weekly totals: each driver's week added up, for payday ---------- */
 let weekStart = null;
@@ -3458,6 +3639,7 @@ function renderHome() {
   const p = $('homePanel'); p.hidden = !homeOpen;
   if (!homeOpen) return;
   if (homeSub === 'year') { p.innerHTML = yearHtml(); clearInterval(homeTick); return; }
+  if (homeSub === 'receipts') { p.innerHTML = receiptsHtml(); clearInterval(homeTick); return; }
   const today = todayISO();
   const todays = live(data.trips).filter(t => t.status === 'done' && t.date === today);
   const tt = sums(todays);
@@ -3490,6 +3672,7 @@ function renderHome() {
       <button type="button" data-home="week"><b>Weekly totals</b><small>Each driver's week, added up</small></button>
       <button type="button" data-home="sched"><b>Schedule</b><small>${schedFor(todayISO()).length} shift${schedFor(todayISO()).length === 1 ? '' : 's'} today</small></button>
       <button type="button" data-home="sheets"><b>Trip sheets</b><small>Print blank sheets</small></button>
+      <button type="button" data-home="receipts"><b>Receipts</b><small>${(() => { const n = (data.expenses || []).filter(x => !x.void && String(x.date).slice(0, 7) === todayISO().slice(0, 7)).length; return n ? n + ' this month' : 'Snap a bill or receipt'; })()}</small></button>
       <button type="button" data-home="year"><b>Year summary</b><small>For taxes and the accountant</small></button>
     </div>
     <section class="step"><h3>Recent rides</h3>${tripRows(recent, true)}</section>`;
@@ -3505,6 +3688,7 @@ $('homePanel').addEventListener('click', e => {
   const h = b.dataset.home;
   if (b.id === 'btnWelcome') { openSettings(); return; }
   if (b.dataset.cashok) { markCash(b.dataset.cashok); renderHome(); return; }
+  if (h === 'receipts') { rcNote = { t: '', bad: false }; homeSub = 'receipts'; rcMonth = todayISO().slice(0, 7); rcForm = null; renderHome(); scrollTo({ top: 0 }); return; }
   if (h === 'year') { homeSub = 'year'; yearSel = new Date().getFullYear(); renderHome(); scrollTo({ top: 0 }); return; }
   if (b.id === 'yBack') { homeSub = null; renderHome(); return; }
   if (b.dataset.year) { yearSel = Number(b.dataset.year); renderHome(); return; }
