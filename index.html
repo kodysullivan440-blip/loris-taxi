@@ -261,6 +261,16 @@ body.driver .m-tabs [data-view="home"],body.driver .m-tabs [data-view="invoice"]
 body.m .m-tabs{grid-template-columns:repeat(5,1fr)}
 body.m #btnDrive{display:none}
 .combo{display:flex;gap:6px;align-items:stretch}
+/* ---------- email box ---------- */
+.modal-wrap{position:fixed;inset:0;z-index:100;background:rgba(15,20,25,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:var(--panel);color:var(--fg);border-radius:16px;padding:20px;width:min(560px,100%);max-height:calc(100vh - 32px);overflow:auto;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.modal h2{margin:0;font-size:22px}
+.modal textarea{width:100%;font:inherit;font-weight:400;font-size:16px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);resize:vertical}
+.mb-attach{padding:10px 12px;background:var(--bg);border-radius:10px;font-size:15px}
+.mb-err{color:var(--warn);font-weight:700;margin:0;font-size:15px}
+.mb-err:empty{display:none}
+input.bad-input{border-color:var(--warn)!important;box-shadow:0 0 0 2px var(--warn)}
+@media (max-width:520px){.modal-wrap{align-items:flex-end;padding:0}.modal{border-radius:16px 16px 0 0;max-height:92vh}}
 /* ---------- simple version: invoices and trip sheets only ---------- */
 body.lite #btnHome,body.lite #btnDrive,body.lite #mTabs [data-view="home"],body.lite #mTabs [data-view="drive"],body.lite #btnCopyDriver,body.lite #loggedBanner{display:none!important}
 body.m.lite .m-tabs{grid-template-columns:repeat(3,1fr)!important}
@@ -999,7 +1009,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         <ol class="how" id="howDesk">
           <li><b>Print:</b> the print box opens. Press Print in it.</li>
           <li><b>Save PDF:</b> the invoice is saved straight into the <b>Downloads</b> folder.</li>
-          <li><b>Email it:</b> the PDF is saved to Downloads, then pick how you send email. The address and message are filled in. Just attach the PDF from Downloads.</li>
+          <li><b>Email it:</b> a box opens with the address and message filled in and the invoice attached. Press Send.</li>
         </ol>
         <ol class="how" id="howPhone" hidden>
           <li>Press <b>Print</b>, <b>Save PDF</b> or <b>Email it</b>. The invoice gets made into a PDF.</li>
@@ -1678,6 +1688,7 @@ function mailLinks(c) {
 }
 $('btnEmail').addEventListener('click', async () => {
   if (blockedHere()) return;
+  if (mailReady()) { openMailBox(); return; }
   const c = cust();
   if (!c.email && !SHARE_MODE) { setStatus(`No email saved for ${c.label}. Add it under Customers & settings.`, true); return; }
   if (SHARE_MODE) return shareFlow('email');
@@ -1704,6 +1715,103 @@ $('btnEmail').addEventListener('click', async () => {
   $('mailPick').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   setStatus('');
 });
+/* ---------- Email straight from the app: a small box, the PDF attached automatically ---------- */
+function emailProblem(v) {
+  const list = String(v || '').split(/[,;\s]+/).filter(Boolean);
+  if (!list.length) return '';
+  for (const a of list) {
+    if (/^(https?:|www\.)/i.test(a)) return `"${a}" is a website, not an email address. An email address has an @ in it, like name@company.ca.`;
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(a)) return `"${a}" isn't a complete email address. It should look like name@company.ca.`;
+  }
+  return '';
+}
+const mailReady = () => !!(syncOn() && data.business && data.business.mailUrl && !isDriver());
+let mailBusy = false;
+function openMailBox() {
+  if (!ready()) return;
+  const c = cust();
+  closeMailBox();
+  const box = document.createElement('div');
+  box.className = 'modal-wrap'; box.id = 'mailBox';
+  box.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-labelledby="mbTitle">
+    <h2 id="mbTitle">Email invoice #${esc(cur.number)}</h2>
+    <label for="mbTo">To<input id="mbTo" type="email" value="${esc(c.email || '')}" placeholder="name@company.ca" autocomplete="off"></label>
+    <p class="mb-err" id="mbErr" role="alert"></p>
+    <label for="mbSub">Subject<input id="mbSub" value="${esc(`Invoice ${cur.number} - Lori's Taxi`)}"></label>
+    <label for="mbBody">Message<textarea id="mbBody" rows="6">${esc(mailText())}</textarea></label>
+    <div class="mb-attach">📎 <b>${esc(pdfName())}</b> is attached automatically</div>
+    <div class="actions"><button type="button" class="primary big" id="mbSend">Send</button><button type="button" id="mbCancel">Cancel</button></div>
+    <p class="hint" id="mbNote">It's sent from Lori's Gmail, so it shows in her Sent folder and replies come back to her.</p>
+  </div>`;
+  document.body.appendChild(box);
+  const to = $('mbTo');
+  const check = () => { const m = emailProblem(to.value); $('mbErr').textContent = m; to.classList.toggle('bad-input', !!m); return m; };
+  to.addEventListener('input', check); check();
+  box.addEventListener('click', e => { if (e.target === box || e.target.id === 'mbCancel') closeMailBox(); });
+  $('mbSend').addEventListener('click', sendFromBox);
+  setTimeout(() => (to.value ? $('mbSend') : to).focus(), 50);
+}
+function closeMailBox() { const b = $('mailBox'); if (b && !mailBusy) b.remove(); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMailBox(); });
+async function sendFromBox() {
+  if (mailBusy) return;
+  const to = $('mbTo').value.trim(), subject = $('mbSub').value.trim(), body = $('mbBody').value;
+  if (!to) { $('mbErr').textContent = 'Type the email address to send it to.'; $('mbTo').focus(); return; }
+  const prob = emailProblem(to); if (prob) { $('mbErr').textContent = prob; $('mbTo').focus(); return; }
+  const btn = $('mbSend'); mailBusy = true; btn.disabled = true; btn.textContent = 'Sending…'; $('mbErr').textContent = '';
+  try {
+    const note = await finalize(); if (note === null) throw new Error('not_ready');
+    lastNote = note;
+    btn.textContent = 'Attaching the invoice…';
+    const pdf = await makeInvoicePdf(); if (!pdf) throw new Error('pdf');
+    const name = pdfName(), n = cur.number, uid = cur.uid;
+    btn.textContent = 'Sending…';
+    const j = await callSync('sendInvoice', { to, subject, body, fileName: name, pdf: pdf.output('datauristring').split(',')[1] }, { u: data.business.mailUrl, k: cfg.k, r: cfg.r });
+    const h = data.history.find(x => x.uid === uid);
+    if (h) { h.emailedTo = j.to || to; h.emailedAt = Date.now(); save(); syncSoon(); }
+    mailBusy = false; closeMailBox();
+    startFresh(n, `was emailed to ${j.to || to}`);
+  } catch (e) {
+    mailBusy = false; btn.disabled = false; btn.textContent = 'Try again';
+    const m = String((e && e.message) || '');
+    $('mbErr').textContent = m === 'pdf' ? "The invoice PDF couldn't be made. Try again." : m === 'not_ready' ? 'The invoice is missing something. Close this and check it.'
+      : m === 'bad_address' ? "That email address doesn't look right." : m.startsWith('mail:') ? "Gmail wouldn't send it: " + m.slice(5).trim() + '.'
+      : "It didn't send: " + errText(e) + '. Nothing was lost, so press Try again.';
+  }
+}
+/* Warn as soon as an email box gets a website or a half-typed address. */
+document.addEventListener('change', e => {
+  const t = e.target; if (!t.matches || !t.matches('input[type="email"]') || t.id === 'mbTo') return;
+  const m = emailProblem(t.value);
+  t.classList.toggle('bad-input', !!m);
+  let tip = t.parentElement.querySelector('.mb-err');
+  if (m && !tip) { tip = document.createElement('span'); tip.className = 'mb-err'; t.after(tip); }
+  if (tip) tip.textContent = m;
+  if (m) setStatus(m, true);
+});
+function mailSettingsHtml() {
+  if (!syncOn() || isDriver()) return '';
+  const u = (data.business && data.business.mailUrl) || '';
+  return `<h2 id="mailHead">Email invoices from the app</h2>
+    <p class="hint">With this set, <b>Email it</b> sends the invoice straight from here with the PDF attached. No Gmail tab and no paperclip.</p>
+    <label for="mailUrl">Email sending link (made in Lori's Google account)<input id="mailUrl" value="${esc(u)}" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" spellcheck="false"></label>
+    <div class="actions"><button type="button" id="mailSave">Save link</button>${u ? '<button type="button" id="mailTest">Send a test email</button>' : ''}</div>
+    <div class="status" id="mailMsg" role="status" aria-live="polite"></div>`;
+}
+$('settingsPanel').addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.id === 'mailSave') {
+    const v = $('mailUrl').value.trim();
+    if (v && !/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(v)) { $('mailMsg').textContent = 'That link should start with https://script.google.com/macros/s/ and end with /exec.'; return; }
+    data.business.mailUrl = v; save(); syncNow(); renderSettings(); $('mailMsg').textContent = v ? 'Saved. Press Send a test email to check it.' : 'Turned off. Email it goes back to opening Gmail.'; return;
+  }
+  if (b.id === 'mailTest') {
+    $('mailMsg').textContent = 'Sending a test email…';
+    try { const j = await callSync('testMail', {}, { u: data.business.mailUrl, k: cfg.k, r: cfg.r }); $('mailMsg').textContent = `Sent. Check the inbox of ${j.from}. Invoices will be sent from that address.`; }
+    catch (err) { const m = String(err.message || ''); $('mailMsg').textContent = m.startsWith('mail:') ? 'Google needs permission to send email first (see the steps).' : "The test didn't go through: " + errText(err) + '.'; }
+  }
+});
+
 /* Phone: make the PDF, then one big button opens the share menu (it has to be its own tap). */
 let shareJob = null;
 async function shareFlow(kind) {
@@ -1747,7 +1855,7 @@ function renderHistory() {
   const counts = {}; data.history.forEach(h => { counts[h.number] = (counts[h.number] || 0) + 1; });
   const list = data.history.slice().sort((a, b) => (Number(b.number) || 0) - (Number(a.number) || 0)).slice(0, 80);
   $('history').innerHTML = list.length ? list.map(h => `
-    <div class="hrow"><b>#${esc(h.number)}</b><span>${esc(h.label)}${counts[h.number] > 1 ? '<span class="dup">Two invoices have this number. Open one and change its number.</span>' : ''}</span><span class="hd">${esc(fmtInvDate(h.date))}</span><span class="ht">${money(h.total)}</span><button type="button" class="small" data-open="${esc(h.uid)}">${document.body.classList.contains('m') ? 'Open' : 'Open to reprint'}</button>
+    <div class="hrow"><b>#${esc(h.number)}</b><span>${esc(h.label)}${h.emailedTo ? `<small class="muted"> · emailed to ${esc(h.emailedTo)}</small>` : ''}${counts[h.number] > 1 ? '<span class="dup">Two invoices have this number. Open one and change its number.</span>' : ''}</span><span class="hd">${esc(fmtInvDate(h.date))}</span><span class="ht">${money(h.total)}</span><button type="button" class="small" data-open="${esc(h.uid)}">${document.body.classList.contains('m') ? 'Open' : 'Open to reprint'}</button>
       ${isDriver() ? '' : `<button type="button" class="small" data-hdel="${esc(h.uid)}">${pendingHistDel === h.uid ? 'Press again to remove' : 'Remove'}</button>`}</div>`).join('')
     : `<p class="empty">Nothing yet. Your first invoice will be #${nextNumber()}.</p>`;
 }
@@ -1799,6 +1907,7 @@ function renderSettings() {
       <label for="sVeh">Vehicles (one per line)<textarea id="sVeh" data-b="vehiclesText" rows="3">${esc((b.vehicles || []).join('\n'))}</textarea></label>
     </div>
     <label for="sAddr">Address<textarea id="sAddr" data-b="address">${esc(b.address)}</textarea></label>
+    ${mailSettingsHtml()}
     ${LITE ? '' : alertsHtml() + ratesHtml() + peopleHtml()}
     <h2>Customers</h2>
     ${data.customers.map((c, i) => `
