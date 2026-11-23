@@ -1681,7 +1681,7 @@ function mailSignature() {
   const b = data.business || {};
   const addr = String(b.address || '').split('\n').map(x => x.trim()).filter(Boolean);
   const line2 = addr.length > 1 ? addr.slice(1).join(' ').replace(/,?\s*Ontario\b/i, ', ON') : '';
-  return ['Lori Albrecht', "Lori's Taxi", [addr[0], line2].filter(Boolean).join(', '),
+  return ['Lori Albrecht (Owner)', "Lori's Taxi", [addr[0], line2].filter(Boolean).join(', '),
     b.phone ? `Phone: ${b.phone}` : '', 'Email: lori.home69@gmail.com', b.hst ? `HST # ${b.hst}` : ''].filter(Boolean).join('\n');
 }
 function mailLinks(c) {
